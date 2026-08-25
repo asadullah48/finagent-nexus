@@ -33,7 +33,6 @@ from typing import Any
 # The package lives in src/ and is not pip-installed in the function bundle.
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "src"))
 
-from finagent_nexus.agents.compliance_officer import aggregate_verdict  # noqa: E402
 from finagent_nexus.checks import run_machine_checks  # noqa: E402
 from finagent_nexus.constitution import applicable_principles, by_id  # noqa: E402
 from finagent_nexus.state import (  # noqa: E402
@@ -43,6 +42,7 @@ from finagent_nexus.state import (  # noqa: E402
     Recommendation,
 )
 from finagent_nexus.tools.market_data import SyntheticMarketData  # noqa: E402
+from finagent_nexus.verdict import aggregate_verdict  # noqa: E402
 
 MAX_BODY_BYTES = 64 * 1024
 MAX_ALLOCATIONS = 40

@@ -1,9 +1,12 @@
-# Serverless function dependencies only.
+# Serverless function dependencies.
 #
-# The screening endpoint deliberately imports just the deterministic half of
-# the system, so neither `anthropic` nor `langgraph` is needed here. That is
-# not an optimisation — it is the determinism boundary showing up in the
-# dependency graph: checks.py -> constitution.py -> state.py -> pydantic, and
-# nothing else. finagent_nexus/__init__ pulls in config.py, hence dotenv.
+# The screening endpoint imports only the deterministic half of the system:
+#   checks.py -> constitution.py -> state.py -> pydantic
+#   verdict.py -> constitution.py -> state.py
+# so neither `anthropic` nor `langgraph` is reachable from it. That is enforced
+# by tests/test_deterministic_isolation.py, which imports this exact surface in
+# a subprocess and fails if either package ends up in sys.modules.
+#
+# finagent_nexus/__init__ pulls in config.py, hence python-dotenv.
 pydantic>=2.7
 python-dotenv>=1.0

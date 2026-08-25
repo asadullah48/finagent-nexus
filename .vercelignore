@@ -7,3 +7,9 @@ audit/
 .ruff_cache/
 __pycache__/
 *.egg-info/
+
+# Excluded so the Vercel Python builder installs from requirements.txt (the lean
+# deterministic surface) instead of the project's full dependency set, which
+# includes anthropic and langgraph. The endpoint imports neither.
+# .python-version pins the interpreter that pyproject would otherwise supply.
+pyproject.toml

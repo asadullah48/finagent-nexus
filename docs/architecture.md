@@ -41,6 +41,7 @@ because it was never wired.
 | `config.py` | All cost / latency / governance knobs, snapshotted into the trail | stdlib |
 | `constitution.py` | The versioned principle set, severity, and routing ownership | `state`, check ids |
 | `checks.py` | Deterministic arithmetic screens — no model call | `state` |
+| `verdict.py` | Risk-appetite policy: findings → PASS / REVISE / BLOCK. No model call | `constitution`, `state` |
 | `llm.py` | The single Claude access layer: typed output, bounded tool loops, usage accounting | anthropic SDK |
 | `audit.py` | Hash-chained JSONL trail and verification | stdlib |
 | `agents/market_analyst.py` | Evidence gathering under tools | `llm`, `tools` |
@@ -50,8 +51,15 @@ because it was never wired.
 | `tools/` | The analyst tool surface and the market data Protocol | stdlib |
 
 **Dependency rule:** dependencies point *inward* toward `state.py`. Nothing in `state.py`,
-`checks.py`, or `risk_metrics.py` imports an agent, a graph, or a vendor SDK — which is why the
-deterministic half of the system runs offline with no API key at all.
+`checks.py`, `verdict.py`, or `risk_metrics.py` imports an agent, a graph, or a vendor SDK — which
+is why the deterministic half of the system runs offline with no API key at all.
+
+This is enforced, not merely intended. `tests/test_deterministic_isolation.py` imports the
+deterministic surface in a subprocess and fails if `anthropic` or `langgraph` reaches
+`sys.modules`. The rule was added after the boundary leaked: `aggregate_verdict` originally lived
+in `agents/compliance_officer.py`, so screening a portfolio transitively imported the Anthropic
+SDK. Nothing broke, because the SDK was installed everywhere it ran — the leak stayed invisible
+until a deployment tried to install only what it needed.
 
 ---
 
@@ -132,7 +140,7 @@ node visits (LangGraph `recursion_limit`).
 | --- | --- | --- |
 | Adjust a Shari'ah threshold | `SHARIA_THRESHOLDS` in `constitution.py` | Re-run the eval harness before sign-off |
 | Add a compliance rule | `constitution.py`, plus `checks.py` if arithmetic | Add golden cases; decide who owns fixing it |
-| Change the institution's risk appetite | `aggregate_verdict` in `agents/compliance_officer.py` | One function, one test file — a reviewable diff |
+| Change the institution's risk appetite | `aggregate_verdict` in `verdict.py` | One function, one test file — a reviewable diff |
 | Plug in real market data | One class satisfying `MarketDataProvider` | Nothing downstream changes |
 | Run a demo on fabricated prices | `--allow-synthetic-data`, or `FINAGENT_ALLOW_SYNTHETIC_DATA=true` | Never in production |
 | Route the analyst to a cheaper model | `FINAGENT_ANALYST_MODEL` | Never downgrade the reviewer for cost reasons |

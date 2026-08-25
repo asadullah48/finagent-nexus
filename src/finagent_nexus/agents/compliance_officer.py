@@ -16,8 +16,11 @@ modifications for a regulated setting:
 from __future__ import annotations
 
 from finagent_nexus.checks import run_machine_checks
-from finagent_nexus.constitution import applicable_principles, by_id, render_for_prompt
+from finagent_nexus.constitution import applicable_principles, render_for_prompt
 from finagent_nexus.llm import ClaudeClient, compact_json
+# Re-exported so existing callers keep working; the policy itself lives in a
+# module that does not import the model client. See finagent_nexus.verdict.
+from finagent_nexus.verdict import aggregate_verdict
 from finagent_nexus.state import (
     ClientRequest,
     ComplianceFindings,
@@ -26,8 +29,6 @@ from finagent_nexus.state import (
     MarketBrief,
     PrincipleFinding,
     Recommendation,
-    Severity,
-    Verdict,
 )
 from finagent_nexus.tools.market_data import MarketDataProvider
 
@@ -58,75 +59,6 @@ RULES OF REVIEW
 You are reviewing against this constitution:
 
 """
-
-
-def _severity_of(principle_id: str) -> Severity:
-    principle = by_id(principle_id)
-    return principle.severity if principle else Severity.MATERIAL
-
-
-def aggregate_verdict(
-    findings: list[PrincipleFinding], revisions_remaining: int
-) -> tuple[Verdict, list[str], list[str]]:
-    """Map findings to a verdict. **This is the institution's risk policy in code.**
-
-    The default policy encoded here:
-
-    * ``UNVERIFIABLE`` on a blocking or material principle counts as a failure.
-      The system fails closed — an unproven claim is not an approved one.
-    * A **blocking** ``FAIL`` with no remediation offered is unfixable by another
-      pass, so it terminates the run immediately with ``BLOCK``. Note the
-      restriction to ``FAIL``: an ``UNVERIFIABLE`` finding is remediable by
-      definition — the fix is to obtain the missing evidence — so it never takes
-      this shortcut, even when it arrives without remediation text.
-    * Any other blocking or material failure returns ``REVISE`` while revision
-      budget remains, and ``BLOCK`` once it is exhausted. A defect that survives
-      the revision budget goes to a human, never to the client.
-    * **Advisory** failures never change the verdict; they are surfaced as
-      caveats attached to the approved recommendation.
-
-    Every institution's second line will want to tune this — a private bank may
-    allow a material breach to pass with sign-off, a retail platform almost
-    certainly will not. It is one function, with one test file, precisely so that
-    tuning it is a reviewable change rather than a prompt edit.
-
-    Returns:
-        ``(verdict, blocking_failures, remediations)``.
-    """
-    blocking_failures: list[str] = []
-    remediations: list[str] = []
-    unfixable = False
-    material_failure = False
-
-    for finding in findings:
-        severity = _severity_of(finding.principle_id)
-        failed = finding.status is FindingStatus.FAIL or (
-            finding.status is FindingStatus.UNVERIFIABLE and severity is not Severity.ADVISORY
-        )
-        if not failed:
-            continue
-
-        summary = f"[{severity.value}] {finding.principle_id}: {finding.rationale}"
-        if finding.remediation:
-            remediations.append(f"{finding.principle_id}: {finding.remediation}")
-
-        if severity is Severity.BLOCKING:
-            blocking_failures.append(summary)
-            # Only a definite FAIL can be unfixable. An UNVERIFIABLE finding
-            # means "not proven", and the remedy is more evidence, not surrender.
-            if finding.status is FindingStatus.FAIL and not finding.remediation:
-                unfixable = True
-        elif severity is Severity.MATERIAL:
-            blocking_failures.append(summary)
-            material_failure = True
-
-    if unfixable:
-        return Verdict.BLOCK, blocking_failures, remediations
-    if blocking_failures or material_failure:
-        if revisions_remaining > 0:
-            return Verdict.REVISE, blocking_failures, remediations
-        return Verdict.BLOCK, blocking_failures, remediations
-    return Verdict.PASS, [], remediations
 
 
 class ComplianceOfficer:

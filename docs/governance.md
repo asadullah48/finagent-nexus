@@ -64,7 +64,7 @@ assets, and will produce different outcomes on the same portfolio.
 | Threshold adjustment | Shari'ah board or compliance sign-off | Diff of `SHARIA_THRESHOLDS` + eval re-run |
 | New principle | Owner decision: arithmetic or judgement; routing owner | Diff + new golden cases |
 | Severity reclassification | Risk committee — this changes what blocks issuance | Diff + `test_verdict.py` result |
-| Risk appetite change | Risk committee | Diff of `aggregate_verdict`, one function, one test file |
+| Risk appetite change | Risk committee | Diff of `aggregate_verdict` in `verdict.py`, one function, one test file |
 
 Tuning risk appetite is deliberately a **reviewable code change rather than a prompt edit**. A
 private bank may allow a material breach to pass with sign-off; a retail platform almost
