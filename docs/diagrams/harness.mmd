@@ -1,0 +1,14 @@
+%% Harness — tools, context, permissions and observability converging on one agent turn.
+%% Rendered inline in SPEC.md section 3.4. Keep the two copies identical.
+flowchart TB
+    subgraph Harness
+        T["Tool access<br/>strict schemas · echoed args<br/>errors returned, not raised"]
+        M["Context<br/>stateless between runs<br/>cached constitution prefix"]
+        P["Permissions<br/>separation of duties<br/>one power per agent"]
+        O["Observability<br/>hash-chained JSONL<br/>usage + latency per call"]
+    end
+    T --> G["Agent turn<br/>(ClaudeClient.structured)"]
+    M --> G
+    P --> G
+    G --> O
+    O --> R[("audit/&lt;correlation-id&gt;.jsonl<br/>tamper-evident")]

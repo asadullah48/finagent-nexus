@@ -1,0 +1,14 @@
+{
+  "client_id": "CL-DEMO-0142",
+  "objective": "Balanced growth within a Shari'ah-compliant mandate, with a preference for regional exposure.",
+  "capital_usd": 2500000,
+  "horizon_years": 10,
+  "risk_tolerance": "balanced",
+  "jurisdiction": "SA",
+  "mandate": "sharia",
+  "constraints": [
+    "No leveraged products.",
+    "Minimum 25% in income-generating assets.",
+    "No single position above 20% (stricter than the house limit)."
+  ]
+}

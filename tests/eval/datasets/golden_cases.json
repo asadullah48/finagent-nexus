@@ -1,0 +1,348 @@
+{
+  "version": "1.0",
+  "description": "Labelled portfolios with the outcome the constitution must produce. Every instrument, ratio and figure is synthetic. Each case isolates one breach where possible so a regression names the principle that broke.",
+  "cases": [
+    {
+      "id": "compliant-balanced-sharia",
+      "description": "Sukuk-anchored balanced portfolio that clears every deterministic screen.",
+      "request": {
+        "client_id": "CL-EVAL-001",
+        "objective": "Balanced growth within a Shari'ah-compliant mandate.",
+        "capital_usd": 1000000,
+        "horizon_years": 10,
+        "risk_tolerance": "balanced",
+        "jurisdiction": "SA",
+        "mandate": "sharia",
+        "constraints": []
+      },
+      "recommendation": {
+        "summary": "A sukuk-anchored balanced portfolio with screened equity and gold satellites.",
+        "allocations": [
+          {"symbol": "SUKUK.GCC", "weight_pct": 25.0, "rationale": "Low-volatility income anchor."},
+          {"symbol": "2222.SR", "weight_pct": 25.0, "rationale": "Cash-generative energy exposure."},
+          {"symbol": "SPUS", "weight_pct": 25.0, "rationale": "Screened global equity diversification."},
+          {"symbol": "GLD", "weight_pct": 25.0, "rationale": "Real-asset hedge."}
+        ],
+        "expected_return_pct": 6.2,
+        "expected_volatility_pct": 9.4,
+        "review_cadence": "Quarterly",
+        "disclosures": [
+          "Capital is at risk and the value of investments may fall as well as rise.",
+          "Projected figures are estimates, not a forecast."
+        ]
+      },
+      "expect": {
+        "must_fail": [],
+        "must_pass": [
+          "SHARIA-RIBA-01", "SHARIA-SCREEN-02", "SHARIA-SCREEN-03", "SHARIA-SCREEN-04",
+          "SHARIA-SECTOR-05", "REG-CONC-02", "REG-ALLOC-03", "REG-DISC-04"
+        ],
+        "verdict_with_budget": "pass"
+      }
+    },
+    {
+      "id": "riba-bearing-instrument",
+      "description": "A conventional treasury bond fund under a Shari'ah mandate — riba by construction.",
+      "request": {
+        "client_id": "CL-EVAL-002",
+        "objective": "Income within a Shari'ah-compliant mandate.",
+        "capital_usd": 1000000,
+        "horizon_years": 7,
+        "risk_tolerance": "conservative",
+        "jurisdiction": "SA",
+        "mandate": "sharia",
+        "constraints": []
+      },
+      "recommendation": {
+        "summary": "An income portfolio blending sukuk with government bonds.",
+        "allocations": [
+          {"symbol": "SUKUK.GCC", "weight_pct": 25.0, "rationale": "Sukuk income."},
+          {"symbol": "2222.SR", "weight_pct": 25.0, "rationale": "Dividend-paying energy."},
+          {"symbol": "GLD", "weight_pct": 25.0, "rationale": "Real-asset hedge."},
+          {"symbol": "TLT", "weight_pct": 25.0, "rationale": "Duration ballast."}
+        ],
+        "expected_return_pct": 4.1,
+        "expected_volatility_pct": 7.2,
+        "review_cadence": "Quarterly",
+        "disclosures": [
+          "Capital is at risk and the value of investments may fall as well as rise."
+        ]
+      },
+      "expect": {
+        "must_fail": ["SHARIA-RIBA-01", "SHARIA-SCREEN-03", "SHARIA-SCREEN-04"],
+        "must_pass": ["SHARIA-SCREEN-02", "SHARIA-SECTOR-05", "REG-CONC-02", "REG-ALLOC-03", "REG-DISC-04"],
+        "verdict_with_budget": "revise"
+      }
+    },
+    {
+      "id": "leverage-screen-breach",
+      "description": "A holding at 34.8% debt to market cap against the 30% AAOIFI limit.",
+      "request": {
+        "client_id": "CL-EVAL-003",
+        "objective": "Regional growth within a Shari'ah-compliant mandate.",
+        "capital_usd": 3000000,
+        "horizon_years": 12,
+        "risk_tolerance": "growth",
+        "jurisdiction": "AE",
+        "mandate": "sharia",
+        "constraints": []
+      },
+      "recommendation": {
+        "summary": "A GCC growth portfolio with real-estate exposure.",
+        "allocations": [
+          {"symbol": "SUKUK.GCC", "weight_pct": 25.0, "rationale": "Income anchor."},
+          {"symbol": "2222.SR", "weight_pct": 25.0, "rationale": "Energy exposure."},
+          {"symbol": "EMAAR.DU", "weight_pct": 25.0, "rationale": "Regional real-estate growth."},
+          {"symbol": "GLD", "weight_pct": 25.0, "rationale": "Real-asset hedge."}
+        ],
+        "expected_return_pct": 7.4,
+        "expected_volatility_pct": 12.8,
+        "review_cadence": "Quarterly",
+        "disclosures": [
+          "Capital is at risk and the value of investments may fall as well as rise."
+        ]
+      },
+      "expect": {
+        "must_fail": ["SHARIA-SCREEN-02"],
+        "must_pass": ["SHARIA-RIBA-01", "SHARIA-SCREEN-03", "SHARIA-SCREEN-04", "SHARIA-SECTOR-05", "REG-CONC-02", "REG-ALLOC-03", "REG-DISC-04"],
+        "verdict_with_budget": "revise"
+      }
+    },
+    {
+      "id": "prohibited-sector",
+      "description": "A prohibited-activity issuer that also breaches the impure-revenue screen.",
+      "request": {
+        "client_id": "CL-EVAL-004",
+        "objective": "Global growth within a Shari'ah-compliant mandate.",
+        "capital_usd": 1500000,
+        "horizon_years": 10,
+        "risk_tolerance": "growth",
+        "jurisdiction": "AE",
+        "mandate": "sharia",
+        "constraints": []
+      },
+      "recommendation": {
+        "summary": "A global consumer-tilted growth portfolio.",
+        "allocations": [
+          {"symbol": "SUKUK.GCC", "weight_pct": 25.0, "rationale": "Income anchor."},
+          {"symbol": "2222.SR", "weight_pct": 25.0, "rationale": "Energy exposure."},
+          {"symbol": "DEMO.ALC", "weight_pct": 25.0, "rationale": "European consumer brands."},
+          {"symbol": "GLD", "weight_pct": 25.0, "rationale": "Real-asset hedge."}
+        ],
+        "expected_return_pct": 7.0,
+        "expected_volatility_pct": 12.1,
+        "review_cadence": "Quarterly",
+        "disclosures": [
+          "Capital is at risk and the value of investments may fall as well as rise."
+        ]
+      },
+      "expect": {
+        "must_fail": ["SHARIA-SECTOR-05", "SHARIA-SCREEN-04"],
+        "must_pass": ["SHARIA-RIBA-01", "SHARIA-SCREEN-02", "SHARIA-SCREEN-03", "REG-CONC-02", "REG-ALLOC-03", "REG-DISC-04"],
+        "verdict_with_budget": "revise"
+      }
+    },
+    {
+      "id": "concentration-breach",
+      "description": "Shari'ah-clean holdings, but two positions exceed the 25% single-name limit.",
+      "request": {
+        "client_id": "CL-EVAL-005",
+        "objective": "Concentrated conviction within a Shari'ah-compliant mandate.",
+        "capital_usd": 800000,
+        "horizon_years": 8,
+        "risk_tolerance": "growth",
+        "jurisdiction": "SA",
+        "mandate": "sharia",
+        "constraints": []
+      },
+      "recommendation": {
+        "summary": "A concentrated three-line portfolio.",
+        "allocations": [
+          {"symbol": "SUKUK.GCC", "weight_pct": 40.0, "rationale": "Income anchor."},
+          {"symbol": "2222.SR", "weight_pct": 30.0, "rationale": "Energy conviction."},
+          {"symbol": "GLD", "weight_pct": 30.0, "rationale": "Real-asset hedge."}
+        ],
+        "expected_return_pct": 5.9,
+        "expected_volatility_pct": 10.2,
+        "review_cadence": "Quarterly",
+        "disclosures": [
+          "Capital is at risk and the value of investments may fall as well as rise."
+        ]
+      },
+      "expect": {
+        "must_fail": ["REG-CONC-02"],
+        "must_pass": ["SHARIA-RIBA-01", "SHARIA-SCREEN-02", "SHARIA-SCREEN-03", "SHARIA-SCREEN-04", "SHARIA-SECTOR-05", "REG-ALLOC-03", "REG-DISC-04"],
+        "verdict_with_budget": "revise"
+      }
+    },
+    {
+      "id": "weights-do-not-sum",
+      "description": "Arithmetic error: the book is only 75% invested with no cash line.",
+      "request": {
+        "client_id": "CL-EVAL-006",
+        "objective": "Balanced growth within a Shari'ah-compliant mandate.",
+        "capital_usd": 1000000,
+        "horizon_years": 10,
+        "risk_tolerance": "balanced",
+        "jurisdiction": "SA",
+        "mandate": "sharia",
+        "constraints": []
+      },
+      "recommendation": {
+        "summary": "A partially allocated balanced portfolio.",
+        "allocations": [
+          {"symbol": "SUKUK.GCC", "weight_pct": 25.0, "rationale": "Income anchor."},
+          {"symbol": "2222.SR", "weight_pct": 25.0, "rationale": "Energy exposure."},
+          {"symbol": "GLD", "weight_pct": 25.0, "rationale": "Real-asset hedge."}
+        ],
+        "expected_return_pct": 5.5,
+        "expected_volatility_pct": 8.8,
+        "review_cadence": "Quarterly",
+        "disclosures": [
+          "Capital is at risk and the value of investments may fall as well as rise."
+        ]
+      },
+      "expect": {
+        "must_fail": ["REG-ALLOC-03"],
+        "must_pass": ["SHARIA-RIBA-01", "SHARIA-SCREEN-02", "SHARIA-SCREEN-03", "SHARIA-SCREEN-04", "SHARIA-SECTOR-05", "REG-CONC-02", "REG-DISC-04"],
+        "verdict_with_budget": "revise"
+      }
+    },
+    {
+      "id": "guarantee-language",
+      "description": "Compliant holdings undone by a promise of a guaranteed return.",
+      "request": {
+        "client_id": "CL-EVAL-007",
+        "objective": "Capital growth within a Shari'ah-compliant mandate.",
+        "capital_usd": 1000000,
+        "horizon_years": 10,
+        "risk_tolerance": "balanced",
+        "jurisdiction": "SA",
+        "mandate": "sharia",
+        "constraints": []
+      },
+      "recommendation": {
+        "summary": "This portfolio delivers a guaranteed 8% annual return with no downside.",
+        "allocations": [
+          {"symbol": "SUKUK.GCC", "weight_pct": 25.0, "rationale": "Income anchor."},
+          {"symbol": "2222.SR", "weight_pct": 25.0, "rationale": "Energy exposure."},
+          {"symbol": "SPUS", "weight_pct": 25.0, "rationale": "Screened global equity."},
+          {"symbol": "GLD", "weight_pct": 25.0, "rationale": "Real-asset hedge."}
+        ],
+        "expected_return_pct": 8.0,
+        "expected_volatility_pct": 9.4,
+        "review_cadence": "Quarterly",
+        "disclosures": [
+          "Capital is at risk and the value of investments may fall as well as rise."
+        ]
+      },
+      "expect": {
+        "must_fail": ["REG-DISC-04"],
+        "must_pass": ["SHARIA-RIBA-01", "SHARIA-SCREEN-02", "SHARIA-SCREEN-03", "SHARIA-SCREEN-04", "SHARIA-SECTOR-05", "REG-CONC-02", "REG-ALLOC-03"],
+        "verdict_with_budget": "revise"
+      }
+    },
+    {
+      "id": "missing-risk-disclosure",
+      "description": "No guarantee language, but no capital-at-risk disclosure either.",
+      "request": {
+        "client_id": "CL-EVAL-008",
+        "objective": "Capital growth within a Shari'ah-compliant mandate.",
+        "capital_usd": 1000000,
+        "horizon_years": 10,
+        "risk_tolerance": "balanced",
+        "jurisdiction": "SA",
+        "mandate": "sharia",
+        "constraints": []
+      },
+      "recommendation": {
+        "summary": "A sukuk-anchored balanced portfolio.",
+        "allocations": [
+          {"symbol": "SUKUK.GCC", "weight_pct": 25.0, "rationale": "Income anchor."},
+          {"symbol": "2222.SR", "weight_pct": 25.0, "rationale": "Energy exposure."},
+          {"symbol": "SPUS", "weight_pct": 25.0, "rationale": "Screened global equity."},
+          {"symbol": "GLD", "weight_pct": 25.0, "rationale": "Real-asset hedge."}
+        ],
+        "expected_return_pct": 6.2,
+        "expected_volatility_pct": 9.4,
+        "review_cadence": "Quarterly",
+        "disclosures": [
+          "Past performance is not indicative of future results."
+        ]
+      },
+      "expect": {
+        "must_fail": ["REG-DISC-04"],
+        "must_pass": ["SHARIA-RIBA-01", "SHARIA-SCREEN-02", "SHARIA-SCREEN-03", "SHARIA-SCREEN-04", "SHARIA-SECTOR-05", "REG-CONC-02", "REG-ALLOC-03"],
+        "verdict_with_budget": "revise"
+      }
+    },
+    {
+      "id": "conventional-mandate-clean",
+      "description": "Instruments that would fail Shari'ah screens are fine under a conventional mandate. Guards against over-application of the constitution.",
+      "request": {
+        "client_id": "CL-EVAL-009",
+        "objective": "Balanced growth under a conventional mandate.",
+        "capital_usd": 1000000,
+        "horizon_years": 8,
+        "risk_tolerance": "balanced",
+        "jurisdiction": "GB",
+        "mandate": "conventional",
+        "constraints": []
+      },
+      "recommendation": {
+        "summary": "A classic diversified balanced portfolio.",
+        "allocations": [
+          {"symbol": "SPY", "weight_pct": 25.0, "rationale": "Broad equity beta."},
+          {"symbol": "TLT", "weight_pct": 25.0, "rationale": "Duration ballast."},
+          {"symbol": "GLD", "weight_pct": 25.0, "rationale": "Real-asset hedge."},
+          {"symbol": "SPUS", "weight_pct": 25.0, "rationale": "Screened equity sleeve."}
+        ],
+        "expected_return_pct": 6.6,
+        "expected_volatility_pct": 10.1,
+        "review_cadence": "Semi-annually",
+        "disclosures": [
+          "Capital is at risk and the value of investments may fall as well as rise."
+        ]
+      },
+      "expect": {
+        "must_fail": [],
+        "must_pass": ["REG-CONC-02", "REG-ALLOC-03", "REG-DISC-04"],
+        "verdict_with_budget": "pass"
+      }
+    },
+    {
+      "id": "unknown-instrument-fails-closed",
+      "description": "An instrument with no reference data must not be screened as clean.",
+      "request": {
+        "client_id": "CL-EVAL-010",
+        "objective": "Balanced growth within a Shari'ah-compliant mandate.",
+        "capital_usd": 1000000,
+        "horizon_years": 10,
+        "risk_tolerance": "balanced",
+        "jurisdiction": "SA",
+        "mandate": "sharia",
+        "constraints": []
+      },
+      "recommendation": {
+        "summary": "A balanced portfolio including an off-platform holding.",
+        "allocations": [
+          {"symbol": "SUKUK.GCC", "weight_pct": 25.0, "rationale": "Income anchor."},
+          {"symbol": "2222.SR", "weight_pct": 25.0, "rationale": "Energy exposure."},
+          {"symbol": "GLD", "weight_pct": 25.0, "rationale": "Real-asset hedge."},
+          {"symbol": "MYSTERY.XX", "weight_pct": 25.0, "rationale": "Off-platform private placement."}
+        ],
+        "expected_return_pct": 6.8,
+        "expected_volatility_pct": 11.0,
+        "review_cadence": "Quarterly",
+        "disclosures": [
+          "Capital is at risk and the value of investments may fall as well as rise."
+        ]
+      },
+      "expect": {
+        "must_fail": ["SHARIA-RIBA-01", "SHARIA-SCREEN-02", "SHARIA-SCREEN-03", "SHARIA-SCREEN-04", "SHARIA-SECTOR-05"],
+        "must_pass": ["REG-CONC-02", "REG-ALLOC-03", "REG-DISC-04"],
+        "verdict_with_budget": "revise"
+      }
+    }
+  ]
+}

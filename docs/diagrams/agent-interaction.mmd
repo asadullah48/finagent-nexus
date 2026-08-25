@@ -1,0 +1,32 @@
+%% Agent interaction — message and evidence flow across one revision.
+%% Payload names are the Pydantic contracts in src/finagent_nexus/state.py.
+%% Rendered inline in SPEC.md section 2.4.
+sequenceDiagram
+    autonumber
+    participant C as Caller / CLI
+    participant W as WealthStrategist
+    participant M as MarketAnalyst
+    participant O as ComplianceOfficer
+    participant T as AuditTrail
+
+    C->>W: ClientRequest
+    W->>T: record(plan)
+    W->>M: Plan (thesis, universe, steps)
+
+    Note over M: tool loop — market_data, risk_metrics<br/>bounded by max_tool_iterations
+    M->>T: record(analyse, usage, latency)
+    M->>W: MarketBrief (regime, views, evidence)
+
+    W->>T: record(synthesize)
+    W->>O: Recommendation (allocations, weights)
+
+    Note over O: run_machine_checks() first — arithmetic<br/>then model critique over the constitution
+    O->>T: record(review, verdict=revise)
+    O-->>W: ComplianceReview (blocking_failures, remediations)
+
+    Note over W,O: construction defect → re-enter synthesize<br/>evidence defect → re-enter act (MarketAnalyst)
+
+    W->>T: record(synthesize, revision=1)
+    W->>O: Recommendation (revised)
+    O->>T: record(review, verdict=pass)
+    O-->>C: approved Recommendation + ComplianceReview + trail

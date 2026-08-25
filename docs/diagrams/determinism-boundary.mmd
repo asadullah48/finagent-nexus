@@ -1,0 +1,29 @@
+%% Determinism boundary — which principles are arithmetic and which are judgement.
+%% Left column is reproducible offline forever at zero marginal cost (checks.py).
+%% Rendered inline in SPEC.md section 5.2.
+flowchart TB
+    P["Constitution<br/>principles for mandate + jurisdiction"] --> S{"Expressible<br/>as arithmetic?"}
+
+    S -->|yes| D["DETERMINISTIC<br/>checks.py · no model call"]
+    S -->|no| J["JUDGEMENT<br/>model critique under the constitution"]
+
+    D --> D1["Debt / market cap &le; 30%"]
+    D --> D2["Interest-bearing securities &le; 30%"]
+    D --> D3["Impure revenue &le; 5%"]
+    D --> D4["Prohibited sector membership"]
+    D --> D5["Riba-bearing instrument kind"]
+    D --> D6["Weights sum to 100%, long-only"]
+    D --> D7["Single position &le; 25%"]
+    D --> D8["Guarantee language / capital-at-risk"]
+
+    J --> J1["Suitability vs tolerance and horizon"]
+    J --> J2["Excessive gharar in a structure"]
+    J --> J3["Fair, clear, not misleading"]
+    J --> J4["Evidential traceability of claims"]
+    J --> J5["Purification disclosure adequacy"]
+
+    D --> A["aggregate_verdict()"]
+    J --> A
+    A --> V["PASS · REVISE · BLOCK"]
+
+    S -.->|"move rules leftward:<br/>cheapest compliance<br/>improvement available"| D

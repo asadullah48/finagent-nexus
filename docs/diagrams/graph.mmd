@@ -1,0 +1,12 @@
+%% Graph orchestration — node topology, branching, bounded retries.
+%% The load-bearing feature is an ABSENT edge: synthesize never reaches finalize directly.
+%% Rendered inline in SPEC.md section 4.2. Keep the two copies identical.
+stateDiagram-v2
+    [*] --> plan
+    plan --> act
+    act --> synthesize
+    synthesize --> verify
+    verify --> act: REVISE (evidence)
+    verify --> synthesize: REVISE (construction)
+    verify --> finalize: PASS / BLOCK / budget exhausted
+    finalize --> [*]

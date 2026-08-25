@@ -1,0 +1,10 @@
+%% Plan-Act-Verify loop — phase ownership, output contracts, both revision paths.
+%% Rendered inline in SPEC.md section 2.4. Keep the two copies identical.
+flowchart LR
+    A["PLAN<br/>WealthStrategist<br/><i>no tools</i>"] --> B["ACT<br/>MarketAnalyst<br/><i>tools + receipts</i>"]
+    B --> C["SYNTHESIZE<br/>WealthStrategist<br/><i>allocation</i>"]
+    C --> D{"VERIFY<br/>ComplianceOfficer<br/><i>checks + critique</i>"}
+    D -->|PASS| E["FINALIZE<br/>approved"]
+    D -->|"REVISE · evidence defect"| B
+    D -->|"REVISE · construction defect"| C
+    D -->|"BLOCK / budget exhausted"| F["FINALIZE<br/>escalated to human"]

@@ -1,0 +1,14 @@
+{
+  "client_id": "CL-DEMO-0317",
+  "objective": "Preserve capital ahead of a planned liquidity event, with modest real growth.",
+  "capital_usd": 8000000,
+  "horizon_years": 4,
+  "risk_tolerance": "conservative",
+  "jurisdiction": "AE",
+  "mandate": "sharia",
+  "constraints": [
+    "Capital preservation takes precedence over return.",
+    "Daily liquidity required on at least half the book.",
+    "No real-estate development exposure."
+  ]
+}
