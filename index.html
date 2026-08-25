@@ -1,0 +1,573 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>FinAgent-Nexus — Agentic AI Adoption for Financial Services</title>
+<meta name="description" content="Multi-agent financial intelligence with Plan-Act-Verify orchestration, deterministic Shari'ah and regulatory screening, and a hash-chained audit trail. Try the live compliance screener.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#ffffff; --surface:#f7f7f6; --surface-2:#efefed;
+    --ink:#1c1c1c; --ink-2:#353535; --muted:#6b6b6b; --faint:#8e8e8e;
+    --line:#e4e4e1; --line-strong:#d3d3cf;
+    --pass:#1f7a4d; --pass-bg:#e8f4ee;
+    --revise:#8a5a00; --revise-bg:#fbf1de;
+    --block:#a32222; --block-bg:#fbeaea;
+    --max:1180px;
+    --mono:"JetBrains Mono",ui-monospace,SFMono-Regular,Menlo,monospace;
+  }
+  *{box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{
+    margin:0; background:var(--bg); color:var(--ink);
+    font-family:Inter,-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+    font-size:16px; line-height:1.6; -webkit-font-smoothing:antialiased;
+  }
+  .wrap{max-width:var(--max); margin:0 auto; padding:0 24px}
+  a{color:inherit}
+  h1,h2,h3{line-height:1.15; letter-spacing:-0.02em; margin:0}
+  h1{font-size:clamp(2.1rem,5vw,3.5rem); font-weight:700}
+  h2{font-size:clamp(1.6rem,3.4vw,2.4rem); font-weight:700}
+  h3{font-size:1.075rem; font-weight:600; letter-spacing:-0.01em}
+  p{margin:0}
+  section{padding:88px 0; border-top:1px solid var(--line)}
+  .eyebrow{
+    font-size:.72rem; font-weight:600; letter-spacing:.14em; text-transform:uppercase;
+    color:var(--faint); margin-bottom:18px;
+  }
+  .lede{font-size:1.075rem; color:var(--muted); max-width:62ch}
+
+  /* nav */
+  header{position:sticky; top:0; z-index:50; background:rgba(255,255,255,.92);
+    backdrop-filter:blur(10px); border-bottom:1px solid var(--line)}
+  .nav{display:flex; align-items:center; gap:28px; height:66px}
+  .brand{font-weight:700; letter-spacing:-.02em; font-size:1.02rem; text-decoration:none}
+  .brand span{color:var(--faint); font-weight:500}
+  .nav nav{margin-left:auto; display:flex; gap:26px}
+  .nav nav a{color:var(--muted); text-decoration:none; font-size:.9rem; font-weight:500}
+  .nav nav a:hover{color:var(--ink)}
+  .btn{
+    display:inline-flex; align-items:center; gap:8px; background:var(--ink); color:#fff;
+    border:1px solid var(--ink); padding:11px 20px; border-radius:2px; text-decoration:none;
+    font-size:.875rem; font-weight:600; cursor:pointer; font-family:inherit;
+    transition:background .15s,border-color .15s;
+  }
+  .btn:hover{background:#000; border-color:#000}
+  .btn.ghost{background:transparent; color:var(--ink); border-color:var(--line-strong)}
+  .btn.ghost:hover{background:var(--surface); border-color:var(--ink)}
+  @media(max-width:820px){ .nav nav{display:none} }
+
+  /* hero */
+  .hero{padding:110px 0 88px; border-top:none}
+  .hero h1{max-width:19ch}
+  .hero .sub{margin-top:22px; font-size:1.2rem; color:var(--muted); max-width:60ch}
+  .hero .cta{display:flex; gap:12px; margin-top:34px; flex-wrap:wrap}
+
+  /* stat strip */
+  .stats{display:grid; grid-template-columns:repeat(4,1fr); gap:1px; background:var(--line);
+    border:1px solid var(--line); margin-top:64px}
+  .stat{background:var(--bg); padding:24px 22px}
+  .stat b{display:block; font-size:1.85rem; font-weight:700; letter-spacing:-.03em}
+  .stat span{font-size:.82rem; color:var(--muted)}
+  @media(max-width:820px){ .stats{grid-template-columns:repeat(2,1fr)} }
+
+  /* generic grid */
+  .grid-2{display:grid; grid-template-columns:1fr 1fr; gap:56px; align-items:start}
+  .grid-3{display:grid; grid-template-columns:repeat(3,1fr); gap:1px; background:var(--line);
+    border:1px solid var(--line); margin-top:44px}
+  .card{background:var(--bg); padding:32px 28px}
+  .card .num{font-family:var(--mono); font-size:.78rem; color:var(--faint); margin-bottom:14px}
+  .card h3{margin-bottom:10px}
+  .card p{color:var(--muted); font-size:.94rem}
+  @media(max-width:900px){ .grid-2,.grid-3{grid-template-columns:1fr} .grid-2{gap:36px} }
+
+  /* segments */
+  .seg{border-top:1px solid var(--line)}
+  .seg-row{display:flex; align-items:baseline; gap:24px; padding:22px 0;
+    border-bottom:1px solid var(--line)}
+  .seg-row .k{font-family:var(--mono); font-size:.78rem; color:var(--faint); width:34px; flex:none}
+  .seg-row .t{font-weight:600; font-size:1.06rem; width:280px; flex:none}
+  .seg-row .d{color:var(--muted); font-size:.94rem}
+  @media(max-width:820px){ .seg-row{flex-wrap:wrap; gap:6px} .seg-row .t{width:auto} }
+
+  /* screener */
+  .screener{background:var(--surface)}
+  .panel{display:grid; grid-template-columns:1fr 1fr; gap:1px; background:var(--line);
+    border:1px solid var(--line); margin-top:40px}
+  .pane{background:var(--bg); padding:28px}
+  .pane h3{margin-bottom:4px}
+  .pane .hint{font-size:.84rem; color:var(--faint); margin-bottom:22px}
+  label{display:block; font-size:.76rem; font-weight:600; letter-spacing:.06em;
+    text-transform:uppercase; color:var(--faint); margin:18px 0 7px}
+  input,select,textarea{
+    width:100%; padding:10px 12px; border:1px solid var(--line-strong); border-radius:2px;
+    font-family:inherit; font-size:.92rem; color:var(--ink); background:#fff;
+  }
+  input:focus,select:focus,textarea:focus{outline:2px solid var(--ink); outline-offset:-1px; border-color:var(--ink)}
+  textarea{resize:vertical; min-height:64px}
+  .row{display:grid; grid-template-columns:1fr 110px 40px; gap:8px; margin-bottom:8px}
+  .row input{font-family:var(--mono); font-size:.88rem}
+  .row button{border:1px solid var(--line-strong); background:#fff; border-radius:2px;
+    cursor:pointer; color:var(--muted); font-size:1rem; line-height:1}
+  .row button:hover{border-color:var(--block); color:var(--block)}
+  .inline{display:flex; gap:10px; flex-wrap:wrap; margin-top:8px}
+  .chip{border:1px solid var(--line-strong); background:#fff; padding:7px 13px; border-radius:2px;
+    font-size:.8rem; cursor:pointer; font-family:inherit; color:var(--ink-2); font-weight:500}
+  .chip:hover{border-color:var(--ink); background:var(--surface)}
+  .two{display:grid; grid-template-columns:1fr 1fr; gap:12px}
+  .check{display:flex; gap:9px; align-items:flex-start; margin-top:16px}
+  .check input{width:auto; margin-top:3px}
+  .check span{font-size:.86rem; color:var(--muted)}
+
+  .verdict{display:flex; align-items:center; gap:13px; padding:15px 17px; border-radius:2px;
+    font-weight:700; font-size:1.02rem; margin-bottom:8px; border:1px solid transparent}
+  .verdict.pass{background:var(--pass-bg); color:var(--pass); border-color:#bfe0cd}
+  .verdict.revise{background:var(--revise-bg); color:var(--revise); border-color:#e8d5a8}
+  .verdict.block{background:var(--block-bg); color:var(--block); border-color:#e8c0c0}
+  .meta{font-family:var(--mono); font-size:.78rem; color:var(--faint); margin-bottom:22px}
+  .finding{border-top:1px solid var(--line); padding:15px 0}
+  .finding:last-child{border-bottom:1px solid var(--line)}
+  .fhead{display:flex; align-items:center; gap:10px; flex-wrap:wrap}
+  .pill{font-family:var(--mono); font-size:.68rem; font-weight:600; padding:3px 7px;
+    border-radius:2px; text-transform:uppercase; letter-spacing:.04em}
+  .pill.pass{background:var(--pass-bg); color:var(--pass)}
+  .pill.fail{background:var(--block-bg); color:var(--block)}
+  .pill.unverifiable{background:var(--revise-bg); color:var(--revise)}
+  .fid{font-family:var(--mono); font-size:.8rem; font-weight:500}
+  .ftitle{font-size:.9rem; color:var(--muted)}
+  .frat{font-size:.88rem; margin-top:7px; color:var(--ink-2)}
+  .frem{font-size:.86rem; margin-top:7px; padding:9px 11px; background:var(--surface);
+    border-left:2px solid var(--ink); color:var(--ink-2)}
+  .fsrc{font-size:.75rem; color:var(--faint); margin-top:6px; font-family:var(--mono)}
+  .empty{color:var(--faint); font-size:.92rem; padding:34px 0; text-align:center}
+  .filters{display:flex; gap:8px; margin-bottom:4px}
+  .filters button{border:1px solid var(--line-strong); background:#fff; padding:5px 11px;
+    font-size:.78rem; border-radius:2px; cursor:pointer; font-family:inherit; color:var(--muted)}
+  .filters button[aria-pressed="true"]{background:var(--ink); color:#fff; border-color:var(--ink)}
+  @media(max-width:900px){ .panel{grid-template-columns:1fr} }
+
+  /* diagram */
+  .flow{display:flex; align-items:stretch; gap:0; margin-top:44px; flex-wrap:wrap;
+    border:1px solid var(--line)}
+  .step{flex:1 1 180px; padding:26px 22px; border-right:1px solid var(--line); background:var(--bg)}
+  .step:last-child{border-right:none}
+  .step .n{font-family:var(--mono); font-size:.72rem; color:var(--faint)}
+  .step h3{margin:9px 0 7px; font-size:1rem}
+  .step p{font-size:.87rem; color:var(--muted)}
+  .step .who{font-family:var(--mono); font-size:.73rem; color:var(--ink); margin-top:9px}
+  .note{margin-top:22px; padding:17px 19px; background:var(--surface); border-left:2px solid var(--ink);
+    font-size:.93rem; color:var(--ink-2)}
+
+  /* cta */
+  .cta-band{background:var(--ink); color:#fff; border-top:none}
+  .cta-band h2{color:#fff; max-width:20ch}
+  .cta-band p{color:#b9b9b9; margin-top:16px; max-width:58ch}
+  .cta-band .btn{background:#fff; color:var(--ink); border-color:#fff; margin-top:30px}
+  .cta-band .btn:hover{background:#eee; border-color:#eee}
+
+  footer{padding:52px 0; border-top:1px solid var(--line); color:var(--muted); font-size:.87rem}
+  .fgrid{display:flex; justify-content:space-between; gap:32px; flex-wrap:wrap}
+  footer a{color:var(--muted); text-decoration:none}
+  footer a:hover{color:var(--ink); text-decoration:underline}
+  .disc{margin-top:30px; padding-top:22px; border-top:1px solid var(--line);
+    font-size:.8rem; color:var(--faint); max-width:88ch}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="wrap nav">
+    <a class="brand" href="#top">FinAgent-Nexus <span>/ Multi-Agent Financial Intelligence</span></a>
+    <nav>
+      <a href="#gap">The gap</a>
+      <a href="#screener">Live screener</a>
+      <a href="#segments">Segments</a>
+      <a href="#how">How it works</a>
+    </nav>
+    <a class="btn" href="https://github.com/asadullah48/finagent-nexus" target="_blank" rel="noopener">View the repo</a>
+  </div>
+</header>
+
+<main id="top">
+
+  <section class="hero">
+    <div class="wrap">
+      <div class="eyebrow">Agentic AI adoption for financial services</div>
+      <h1>Closing the gap between AI potential and financial reality</h1>
+      <p class="sub">A production-shaped multi-agent system where compliance is a structural property, not a prompt instruction. Three specialised agents, one fixed Plan-Act-Verify state machine, and an audit trail a regulator can re-run.</p>
+      <div class="cta">
+        <a class="btn" href="#screener">Try the live screener</a>
+        <a class="btn ghost" href="https://github.com/asadullah48/finagent-nexus" target="_blank" rel="noopener">Read the source</a>
+      </div>
+
+      <div class="stats">
+        <div class="stat"><b>8 of 14</b><span>principles settled by arithmetic, not judgement</span></div>
+        <div class="stat"><b>0</b><span>model calls in the screener below</span></div>
+        <div class="stat"><b>90</b><span>tests passing offline, no API key</span></div>
+        <div class="stat"><b>~4ms</b><span>to screen a portfolio end to end</span></div>
+      </div>
+    </div>
+  </section>
+
+  <section id="gap">
+    <div class="wrap grid-2">
+      <div>
+        <div class="eyebrow">The problem</div>
+        <h2>Most agentic pilots die at the compliance review</h2>
+      </div>
+      <div>
+        <p class="lede">Not because the models are weak. Because a system that cannot show <em>why</em> it reached a conclusion cannot be signed off by a second line of defence — and a control a model can argue its way past is not a control.</p>
+        <p class="lede" style="margin-top:18px">FinAgent-Nexus inverts the usual order. Governance artefacts exist on day one: a versioned constitution, deterministic screens that need no model at all, separation of duties enforced by construction, and a hash-chained record of every decision.</p>
+      </div>
+    </div>
+
+    <div class="wrap grid-3">
+      <div class="card">
+        <div class="num">01</div>
+        <h3>Custom AI agents</h3>
+        <p>Agents built from discovery through production, aligned to your business rules, policies, and governance — not a generic assistant pointed at a data source.</p>
+      </div>
+      <div class="card">
+        <div class="num">02</div>
+        <h3>Continuous AI delivery</h3>
+        <p>Systems that evolve with embedded monitoring, evaluation as a regression control, and an audit trail that closes even when a run halts.</p>
+      </div>
+      <div class="card">
+        <div class="num">03</div>
+        <h3>Compliance-first by construction</h3>
+        <p>No agent holds two of the three powers. Verification cannot be skipped, because the edge that would bypass it was never wired into the graph.</p>
+      </div>
+    </div>
+  </section>
+
+  <section id="screener" class="screener">
+    <div class="wrap">
+      <div class="eyebrow">Live · deterministic · no model call</div>
+      <h2>Screen a portfolio right now</h2>
+      <p class="lede" style="margin-top:16px">This is the half of the system settled by arithmetic. It runs with no API key, returns in milliseconds, and gives the same answer every time — which is the property a regulator actually asks for. Change a weight and watch a principle flip.</p>
+
+      <div class="panel">
+        <div class="pane">
+          <h3>Candidate portfolio</h3>
+          <p class="hint">Try a preset, or edit the weights directly. Symbols autocomplete from the bundled reference universe.</p>
+
+          <div class="inline">
+            <button class="chip" data-preset="clean">Compliant portfolio</button>
+            <button class="chip" data-preset="concentration">Concentration breach</button>
+            <button class="chip" data-preset="guarantee">Guaranteed-return language</button>
+            <button class="chip" data-preset="riba">Riba-bearing holding</button>
+            <button class="chip" data-preset="sector">Prohibited sector</button>
+          </div>
+
+          <label>Allocations — symbol and weight %</label>
+          <datalist id="symbols">
+            <option value="2222.SR">Saudi Aramco — energy</option>
+            <option value="1120.SR">Al Rajhi Bank — Islamic banking</option>
+            <option value="2010.SR">SABIC — materials</option>
+            <option value="DIB.DU">Dubai Islamic Bank — Islamic banking</option>
+            <option value="EMAAR.DU">Emaar Properties — real estate</option>
+            <option value="SUKUK.GCC">GCC Sukuk Income Fund — diversified</option>
+            <option value="SPUS">SP Funds S&amp;P 500 Sharia ETF</option>
+            <option value="GLD">SPDR Gold Shares — precious metals</option>
+            <option value="SPY">SPDR S&amp;P 500 ETF — diversified</option>
+            <option value="TLT">iShares 20+ Year Treasury — riba-bearing</option>
+            <option value="1010.SR">Riyad Bank — conventional banking</option>
+            <option value="DEMO.ALC">Northgate Beverages — alcohol</option>
+          </datalist>
+          <div id="rows"></div>
+          <button class="chip" id="addRow" style="margin-top:6px">+ Add position</button>
+
+          <div class="two">
+            <div>
+              <label for="mandate">Mandate</label>
+              <select id="mandate">
+                <option value="sharia">Shari'ah</option>
+                <option value="conventional">Conventional</option>
+              </select>
+            </div>
+            <div>
+              <label for="jur">Jurisdiction</label>
+              <select id="jur">
+                <option value="SA">SA — Saudi Arabia</option>
+                <option value="AE">AE — United Arab Emirates</option>
+              </select>
+            </div>
+          </div>
+
+          <label for="summary">Recommendation summary <span style="text-transform:none;letter-spacing:0;font-weight:400">(the disclosure screens read this prose)</span></label>
+          <textarea id="summary">A balanced portfolio constructed within a Shari'ah mandate.</textarea>
+
+          <div class="check">
+            <input type="checkbox" id="disc">
+            <span>Include a capital-at-risk disclosure</span>
+          </div>
+
+          <button class="btn" id="run" style="margin-top:22px; width:100%; justify-content:center">Screen portfolio</button>
+        </div>
+
+        <div class="pane">
+          <h3>Verdict</h3>
+          <p class="hint">Every finding cites the principle and its source standard.</p>
+          <div id="out"><div class="empty">Run a screen to see per-principle findings.</div></div>
+        </div>
+      </div>
+
+      <div class="note">
+        <strong>What this is not.</strong> Reference data is fabricated deterministically from a hash of each symbol, so the repository stays runnable and the eval harness reproducible. It is a test fixture, not a market simulator. Nothing here is investment advice or a Shari'ah opinion, and screening thresholds must be confirmed by your own board — AAOIFI, Dow Jones Islamic Market, and S&P Shariah methodologies differ materially.
+      </div>
+    </div>
+  </section>
+
+  <section id="segments">
+    <div class="wrap">
+      <div class="eyebrow">Where it applies</div>
+      <h2>Financial segments</h2>
+      <div class="seg" style="margin-top:36px">
+        <div class="seg-row"><span class="k">01</span><span class="t">Wealth management</span><span class="d">Mandate-aware portfolio construction with suitability and concentration screening built into issuance.</span></div>
+        <div class="seg-row"><span class="k">02</span><span class="t">Retail &amp; corporate banking</span><span class="d">Product recommendations that carry their own disclosure and fair-presentation checks.</span></div>
+        <div class="seg-row"><span class="k">03</span><span class="t">Private banking</span><span class="d">Bespoke mandates where the constitution encodes each client's specific constraints.</span></div>
+        <div class="seg-row"><span class="k">04</span><span class="t">SME banking</span><span class="d">High-volume decisioning where the analyst can be routed down a model tier and the reviewer cannot.</span></div>
+        <div class="seg-row"><span class="k">05</span><span class="t">Insurance</span><span class="d">Underwriting and suitability review under the same Plan-Act-Verify loop; swap the constitution, keep the machinery.</span></div>
+      </div>
+    </div>
+  </section>
+
+  <section id="how">
+    <div class="wrap">
+      <div class="eyebrow">Architecture</div>
+      <h2>Two paths, one outcome: AI that works in practice</h2>
+      <p class="lede" style="margin-top:16px">A fixed state machine, not a conversation. Control flow a model can rewrite is control flow a compliance function cannot certify.</p>
+
+      <div class="flow">
+        <div class="step"><div class="n">01</div><h3>Plan</h3><p>Decompose the mandate into steps with success criteria. No tools, no data.</p><div class="who">WealthStrategist</div></div>
+        <div class="step"><div class="n">02</div><h3>Act</h3><p>Gather evidence under a strict tool surface that echoes every argument back.</p><div class="who">MarketAnalyst</div></div>
+        <div class="step"><div class="n">03</div><h3>Synthesize</h3><p>Construct the allocation. Sole holder of the power to set weights.</p><div class="who">WealthStrategist</div></div>
+        <div class="step"><div class="n">04</div><h3>Verify</h3><p>Arithmetic screens first, then critique against the constitution.</p><div class="who">ComplianceOfficer</div></div>
+        <div class="step"><div class="n">05</div><h3>Finalize</h3><p>Approve, or escalate to a human with every failing principle attached.</p><div class="who">Orchestrator</div></div>
+      </div>
+
+      <div class="note">
+        <strong>The load-bearing detail is an edge that does not exist.</strong> There is no path from <code>synthesize</code> to <code>finalize</code>. Verification cannot be skipped under load, disabled by a flag, or bypassed by a model deciding it is unnecessary — because it was never wired. And the reviewer does not render the verdict: it reports findings, while the verdict is computed in Python, so no agent holds two of the three powers.
+      </div>
+    </div>
+  </section>
+
+  <section class="cta-band">
+    <div class="wrap">
+      <div class="eyebrow" style="color:#8e8e8e">Next step</div>
+      <h2>Accelerate your AI roadmap</h2>
+      <p>Embed agentic AI securely, at scale, with production in mind from day one. The outcome is AI that does not just promise potential — it produces an artefact your second line can sign.</p>
+      <a class="btn" href="https://github.com/asadullah48/finagent-nexus" target="_blank" rel="noopener">Explore the implementation</a>
+    </div>
+  </section>
+
+</main>
+
+<footer>
+  <div class="wrap">
+    <div class="fgrid">
+      <div>
+        <div style="font-weight:700;color:var(--ink)">FinAgent-Nexus</div>
+        <div style="margin-top:6px">Multi-agent financial intelligence · MIT licensed</div>
+      </div>
+      <div style="display:flex;gap:26px;flex-wrap:wrap">
+        <a href="https://github.com/asadullah48/finagent-nexus" target="_blank" rel="noopener">GitHub</a>
+        <a href="https://github.com/asadullah48/finagent-nexus/blob/main/SPEC.md" target="_blank" rel="noopener">Specification</a>
+        <a href="https://github.com/asadullah48/finagent-nexus/blob/main/docs/architecture.md" target="_blank" rel="noopener">Architecture</a>
+        <a href="https://github.com/asadullah48/finagent-nexus/blob/main/docs/governance.md" target="_blank" rel="noopener">Governance</a>
+        <a href="/api/screen">API</a>
+      </div>
+    </div>
+    <p class="disc">This is a reference implementation, not a licensed advisory product. It does not constitute investment advice and carries no Shari'ah opinion. Market data shown is synthetic and deterministically generated for demonstration; screening thresholds must be confirmed by your own Shari'ah board or compliance function before any production use.</p>
+  </div>
+</footer>
+
+<script>
+(function(){
+  "use strict";
+
+  var DISC = ["Capital is at risk. The value of investments may fall as well as rise."];
+
+  // Every preset is verified against the bundled reference universe: "clean"
+  // genuinely returns PASS, and each other preset isolates a single failure
+  // mode so the cause of the verdict is unambiguous.
+  var PRESETS = {
+    clean: {
+      rows: [["SUKUK.GCC",20],["2222.SR",20],["GLD",20],["SPUS",20],["DIB.DU",20]],
+      summary: "A diversified Shari'ah-compliant allocation across sukuk, screened equities and gold.",
+      disc: true
+    },
+    concentration: {
+      rows: [["2222.SR",31],["SUKUK.GCC",25],["GLD",24],["SPUS",20]],
+      summary: "A balanced portfolio constructed within a Shari'ah mandate.",
+      disc: true
+    },
+    guarantee: {
+      rows: [["SUKUK.GCC",25],["GLD",25],["SPUS",25],["2222.SR",25]],
+      summary: "This portfolio delivers a guaranteed 12% annual return with no risk of loss.",
+      disc: false
+    },
+    riba: {
+      rows: [["TLT",20],["SUKUK.GCC",20],["GLD",20],["SPUS",20],["2222.SR",20]],
+      summary: "A diversified allocation including a long-duration treasury bond fund.",
+      disc: true
+    },
+    sector: {
+      rows: [["DEMO.ALC",20],["SUKUK.GCC",20],["GLD",20],["SPUS",20],["2222.SR",20]],
+      summary: "A diversified allocation including a consumer beverages holding.",
+      disc: true
+    }
+  };
+
+  var rowsEl   = document.getElementById("rows");
+  var outEl    = document.getElementById("out");
+  var summaryEl= document.getElementById("summary");
+  var discEl   = document.getElementById("disc");
+  var runBtn   = document.getElementById("run");
+  var filter   = "all";
+  var lastData = null;
+
+  function addRow(symbol, weight){
+    var d = document.createElement("div");
+    d.className = "row";
+    var s = document.createElement("input");
+    s.type = "text"; s.placeholder = "SYMBOL"; s.value = symbol || "";
+    s.setAttribute("aria-label","Symbol");
+    s.setAttribute("list","symbols");
+    var w = document.createElement("input");
+    w.type = "number"; w.step = "0.1"; w.min = "0"; w.placeholder = "0.0";
+    w.value = (weight === undefined || weight === null) ? "" : weight;
+    w.setAttribute("aria-label","Weight percent");
+    var x = document.createElement("button");
+    x.type = "button"; x.textContent = "×"; x.title = "Remove position";
+    x.setAttribute("aria-label","Remove position");
+    x.onclick = function(){ d.remove(); };
+    d.appendChild(s); d.appendChild(w); d.appendChild(x);
+    rowsEl.appendChild(d);
+  }
+
+  function load(name){
+    var p = PRESETS[name];
+    rowsEl.innerHTML = "";
+    p.rows.forEach(function(r){ addRow(r[0], r[1]); });
+    summaryEl.value = p.summary;
+    discEl.checked = p.disc;
+  }
+
+  function collect(){
+    var out = [];
+    Array.prototype.forEach.call(rowsEl.querySelectorAll(".row"), function(r){
+      var i = r.querySelectorAll("input");
+      var sym = i[0].value.trim();
+      if (!sym) return;
+      out.push({ symbol: sym, weight_pct: parseFloat(i[1].value) || 0 });
+    });
+    return out;
+  }
+
+  function esc(s){
+    return String(s === undefined || s === null ? "" : s)
+      .replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;")
+      .replace(/"/g,"&quot;").replace(/'/g,"&#39;");
+  }
+
+  function render(d){
+    lastData = d;
+    var v = String(d.verdict || "").toLowerCase();
+    var label = v === "pass" ? "PASS — no deterministic breach"
+              : v === "revise" ? "REVISE — remediable defects found"
+              : "BLOCK — escalate to a human";
+
+    var shown = d.findings.filter(function(f){
+      return filter === "all" ? true : (filter === "failed" ? f.status !== "pass" : f.status === "pass");
+    });
+
+    var failedCount = d.findings.filter(function(f){ return f.status !== "pass"; }).length;
+
+    var html = ""
+      + '<div class="verdict ' + esc(v) + '">' + esc(label) + '</div>'
+      + '<div class="meta">' + esc(d.mandate) + ' · ' + esc(d.settled_by_arithmetic)
+      + ' of ' + esc(d.principles_in_force) + ' principles by arithmetic · '
+      + esc(d.model_calls) + ' model calls · ' + esc(d.elapsed_ms) + ' ms</div>'
+      + '<div class="filters">'
+      + '<button data-f="all" aria-pressed="' + (filter==="all") + '">All ' + d.findings.length + '</button>'
+      + '<button data-f="failed" aria-pressed="' + (filter==="failed") + '">Breaches ' + failedCount + '</button>'
+      + '<button data-f="passed" aria-pressed="' + (filter==="passed") + '">Clear ' + (d.findings.length-failedCount) + '</button>'
+      + '</div>';
+
+    if (!shown.length){
+      html += '<div class="empty">Nothing in this view.</div>';
+    } else {
+      shown.forEach(function(f){
+        html += '<div class="finding">'
+             +  '<div class="fhead"><span class="pill ' + esc(f.status) + '">' + esc(f.status) + '</span>'
+             +  '<span class="fid">' + esc(f.principle_id) + '</span>'
+             +  '<span class="ftitle">' + esc(f.title) + '</span></div>'
+             +  '<div class="frat">' + esc(f.rationale) + '</div>'
+             + (f.remediation ? '<div class="frem"><strong>Remediation:</strong> ' + esc(f.remediation) + '</div>' : '')
+             + (f.source ? '<div class="fsrc">' + esc(f.source) + '</div>' : '')
+             +  '</div>';
+      });
+    }
+    outEl.innerHTML = html;
+
+    Array.prototype.forEach.call(outEl.querySelectorAll(".filters button"), function(b){
+      b.onclick = function(){ filter = b.getAttribute("data-f"); render(lastData); };
+    });
+  }
+
+  function run(){
+    var allocations = collect();
+    if (!allocations.length){
+      outEl.innerHTML = '<div class="empty">Add at least one position with a symbol.</div>';
+      return;
+    }
+    runBtn.disabled = true;
+    runBtn.textContent = "Screening…";
+
+    var body = {
+      mandate: document.getElementById("mandate").value,
+      jurisdiction: document.getElementById("jur").value,
+      summary: summaryEl.value,
+      allocations: allocations,
+      disclosures: discEl.checked
+        ? ["Capital is at risk. The value of investments may fall as well as rise."]
+        : []
+    };
+
+    fetch("/api/screen", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body)
+    })
+    .then(function(r){ return r.json().then(function(j){ return { ok: r.ok, body: j }; }); })
+    .then(function(res){
+      if (!res.ok || res.body.error){
+        outEl.innerHTML = '<div class="empty">' + esc(res.body.error || "Screening failed.") + '</div>';
+        return;
+      }
+      render(res.body);
+    })
+    .catch(function(err){
+      outEl.innerHTML = '<div class="empty">Could not reach the screening endpoint. ' + esc(err.message) + '</div>';
+    })
+    .finally(function(){
+      runBtn.disabled = false;
+      runBtn.textContent = "Screen portfolio";
+    });
+  }
+
+  Array.prototype.forEach.call(document.querySelectorAll("[data-preset]"), function(b){
+    b.onclick = function(){ load(b.getAttribute("data-preset")); run(); };
+  });
+  document.getElementById("addRow").onclick = function(){ addRow("", ""); };
+  runBtn.onclick = run;
+
+  load("clean");
+})();
+</script>
+</body>
+</html>

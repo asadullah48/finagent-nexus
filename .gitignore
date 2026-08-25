@@ -12,3 +12,6 @@ htmlcov/
 audit/
 .DS_Store
 .ruff_cache/
+
+.vercel
+.vercel/
