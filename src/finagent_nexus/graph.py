@@ -36,6 +36,7 @@ from finagent_nexus.config import Settings
 from finagent_nexus.constitution import REQUIRES_NEW_EVIDENCE
 from finagent_nexus.llm import AgentError, ClaudeClient, ModelRefusal
 from finagent_nexus.provider_policy import resolve_provider
+from finagent_nexus.retention import issuance_record
 from finagent_nexus.state import ClientRequest, FindingStatus, NexusState, Verdict
 from finagent_nexus.tools import ToolDispatcher
 from finagent_nexus.tools.market_data import MarketDataProvider
@@ -221,6 +222,12 @@ def build_graph(
                 "revisions_used": state.get("revision", 0),
                 "halted_reason": halted,
                 "verdict": review.verdict.value if review else None,
+                # What was actually issued, notarised once. Every other event
+                # records a summary — weights without rationales, findings
+                # without reasoning — which is enough to trace the process and
+                # not enough to answer "what were we told?". See
+                # finagent_nexus.retention for the retention trade-off.
+                **issuance_record(state.get("recommendation"), review),
             },
         )
         return {}

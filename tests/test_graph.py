@@ -9,13 +9,16 @@ pass by a lucky model response.
 
 from __future__ import annotations
 
+import json
 from dataclasses import replace
 
 import pytest
 
 from finagent_nexus.agents import ComplianceOfficer, MarketAnalyst, WealthStrategist
+from finagent_nexus.audit import digest
 from finagent_nexus.config import Settings
 from finagent_nexus.graph import NexusRunner, build_graph
+from finagent_nexus.llm import AgentError
 from finagent_nexus.state import (
     ComplianceFindings,
     FindingStatus,
@@ -68,6 +71,108 @@ def make_runner(settings: Settings, provider, script) -> tuple[NexusRunner, Scri
     runner.officer = ComplianceOfficer(llm, provider)  # type: ignore[arg-type]
     runner.graph = build_graph(runner.strategist, runner.analyst, runner.officer)
     return runner, llm
+
+
+# --------------------------------------------------------------------------- #
+# What the trail is sufficient to prove
+# --------------------------------------------------------------------------- #
+class TestIssuanceRecord:
+    """A tamper-evident chain over an incomplete record proves only that the
+    incomplete record is intact. These tests pin what `finalize` notarises.
+    """
+
+    def _finalize_event(self, state):
+        events = [e for e in state["trail"].events if e.action == "finalize"]
+        assert len(events) == 1, "exactly one issuance event per run"
+        return events[0]
+
+    def test_the_issued_advice_is_recorded_verbatim(
+        self, settings, provider, sharia_request, sample_plan, sample_brief,
+        compliant_recommendation,
+    ):
+        """Six months on, the trail must answer 'what were we told?', not just
+        'what weights were approved?'."""
+        runner, _ = make_runner(
+            settings, provider,
+            [sample_plan, sample_brief, compliant_recommendation, all_clear()],
+        )
+        state = runner.run(sharia_request, correlation_id="issuance")
+        issued = self._finalize_event(state).detail["recommendation"]
+
+        assert issued["summary"] == compliant_recommendation.summary
+        assert issued["disclosures"] == compliant_recommendation.disclosures
+        assert issued["review_cadence"] == compliant_recommendation.review_cadence
+        # The per-holding reasoning is the part a suitability challenge asks for,
+        # and the part `synthesize` only ever recorded as a bare weight.
+        recorded = {a["symbol"]: a["rationale"] for a in issued["allocations"]}
+        expected = {a.symbol: a.rationale for a in compliant_recommendation.allocations}
+        assert recorded == expected
+
+    def test_findings_carry_their_reasoning_not_just_a_status(
+        self, settings, provider, sharia_request, sample_plan, sample_brief,
+        compliant_recommendation,
+    ):
+        runner, _ = make_runner(
+            settings, provider,
+            [sample_plan, sample_brief, compliant_recommendation, all_clear()],
+        )
+        state = runner.run(sharia_request, correlation_id="findings")
+        detailed = self._finalize_event(state).detail["findings_detail"]
+
+        assert detailed, "the issued record must carry findings"
+        for finding in detailed:
+            assert finding["rationale"], f"{finding['principle_id']} recorded with no reasoning"
+            assert set(finding) == {
+                "principle_id", "status", "rationale", "evidence", "remediation",
+            }
+
+    def test_the_digest_identifies_the_document_that_was_issued(
+        self, settings, provider, sharia_request, sample_plan, sample_brief,
+        compliant_recommendation,
+    ):
+        """An advice document held outside this system can be matched to the run."""
+        runner, _ = make_runner(
+            settings, provider,
+            [sample_plan, sample_brief, compliant_recommendation, all_clear()],
+        )
+        state = runner.run(sharia_request, correlation_id="digest")
+        detail = self._finalize_event(state).detail
+
+        assert detail["recommendation_digest"] == digest(detail["recommendation"])
+        # And it must actually discriminate: a single altered weight breaks it.
+        altered = json.loads(json.dumps(detail["recommendation"]))
+        altered["allocations"][0]["weight_pct"] += 1.0
+        assert digest(altered) != detail["recommendation_digest"]
+
+    def test_a_halted_run_still_closes_its_record(self, settings, provider, sharia_request):
+        """No recommendation is not the same as no record — the trail must close.
+
+        An AgentError in the first node means nothing was ever issued. The
+        issuance record must then be *absent*, not a null-filled skeleton that
+        reads like an empty portfolio was sent to a client.
+        """
+        runner, _ = make_runner(settings, provider, [])
+
+        def _fail(*_args, **_kwargs):
+            raise AgentError("upstream failure")
+
+        # Both, because `plan` has an unconditional edge to `act`: setting
+        # `halted` does not short-circuit the graph, it drains through the
+        # remaining nodes, which then decline for want of an input.
+        runner.strategist.plan = _fail  # type: ignore[method-assign]
+        runner.analyst.run = _fail  # type: ignore[method-assign]
+
+        state = runner.run(sharia_request, correlation_id="halted")
+        detail = self._finalize_event(state).detail
+
+        assert detail["outcome"] == "halted"
+        assert detail["halted_reason"]
+        assert "recommendation" not in detail
+        assert "recommendation_digest" not in detail
+        assert "findings_detail" not in detail
+        # The chain must still be intact — a halt closes the record, it does not
+        # abandon it.
+        assert state["trail"].verify()
 
 
 # --------------------------------------------------------------------------- #

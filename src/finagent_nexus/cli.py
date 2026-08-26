@@ -283,6 +283,41 @@ def _cmd_replay(args: argparse.Namespace) -> int:
 
     for event in grouped.get("finalize", []):
         detail = event.detail
+
+        # The issued artefact, if the retention policy recorded it. This is the
+        # only place the client-facing prose exists in the trail; everything
+        # above is a summary of the process that produced it.
+        issued = detail.get("recommendation")
+        if issued:
+            print("\nAs issued")
+            print("-" * 72)
+            print(f"  {issued.get('summary')}")
+            print(f"\n  {'Symbol':<14}{'Weight':>8}   Rationale")
+            for allocation in issued.get("allocations") or []:
+                print(
+                    f"  {allocation.get('symbol'):<14}"
+                    f"{allocation.get('weight_pct'):>7.1f}%   "
+                    f"{allocation.get('rationale')}"
+                )
+            print(f"  Review cadence: {issued.get('review_cadence')}")
+            for disclosure in issued.get("disclosures") or []:
+                print(f"    · {disclosure}")
+            print(f"  Digest: {detail.get('recommendation_digest')}")
+
+        detailed = detail.get("findings_detail")
+        if detailed:
+            print("\nFindings, in full")
+            print("-" * 72)
+            for finding in detailed:
+                mark = {"pass": "PASS", "fail": "FAIL", "unverifiable": "????"}.get(
+                    finding.get("status"), str(finding.get("status"))
+                )
+                print(f"  [{mark}] {finding.get('principle_id')}: {finding.get('rationale')}")
+                if finding.get("evidence"):
+                    print(f"          evidence: {finding['evidence']}")
+                if finding.get("remediation"):
+                    print(f"          fix:      {finding['remediation']}")
+
         print(f"\nOutcome: {str(detail.get('outcome')).upper()}")
         print("-" * 72)
         print(f"  Revisions used : {detail.get('revisions_used')}")
