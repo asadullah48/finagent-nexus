@@ -9,8 +9,9 @@ pass by a lucky model response.
 
 from __future__ import annotations
 
-import pytest
 from dataclasses import replace
+
+import pytest
 
 from finagent_nexus.agents import ComplianceOfficer, MarketAnalyst, WealthStrategist
 from finagent_nexus.config import Settings
@@ -97,7 +98,7 @@ def test_graph_exposes_the_expected_nodes(settings, provider):
 def test_compliant_run_passes_first_time(
     settings, provider, sharia_request, sample_plan, sample_brief, compliant_recommendation
 ):
-    runner, llm = make_runner(
+    runner, _llm = make_runner(
         settings,
         provider,
         [sample_plan, sample_brief, compliant_recommendation, all_clear()],

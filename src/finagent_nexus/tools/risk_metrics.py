@@ -15,6 +15,7 @@ from __future__ import annotations
 
 import math
 from dataclasses import asdict, dataclass
+from itertools import pairwise
 
 TRADING_DAYS_PER_YEAR = 252
 
@@ -34,9 +35,16 @@ class RiskMetrics:
 
 
 def simple_returns(prices: list[float]) -> list[float]:
-    """Period-over-period simple returns. Zero or negative prices are skipped."""
+    """Period-over-period simple returns. Zero or negative prices are skipped.
+
+    ``pairwise`` rather than ``zip(prices, prices[1:])``: the slice copies the
+    whole series on every call, and a bare ``zip`` over two sequences of
+    deliberately different lengths is the shape that hides an off-by-one
+    truncation. ``pairwise`` states the intent — successive pairs — so there is
+    no length contract left to get wrong.
+    """
     out: list[float] = []
-    for previous, current in zip(prices, prices[1:]):
+    for previous, current in pairwise(prices):
         if previous > 0:
             out.append((current - previous) / previous)
     return out

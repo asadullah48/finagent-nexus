@@ -16,7 +16,7 @@ from __future__ import annotations
 import hashlib
 import json
 import uuid
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
@@ -88,9 +88,15 @@ class AuditTrail:
     ) -> AuditEvent:
         """Append one event and return it."""
         seq = len(self._events)
-        body = {
+        # Annotated rather than inferred: without it the value type widens to
+        # `object` and the `**body` splat below cannot be checked against
+        # AuditEvent's fields at all. The splat itself is deliberate — it makes
+        # the hashed payload and the stored event one dict, so a field can never
+        # be hashed but not recorded, or recorded but not hashed. That guarantee
+        # is worth keeping visible to the type checker.
+        body: dict[str, Any] = {
             "seq": seq,
-            "ts": datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"),
+            "ts": datetime.now(UTC).isoformat().replace("+00:00", "Z"),
             "correlation_id": self.correlation_id,
             "actor": actor,
             "action": action,

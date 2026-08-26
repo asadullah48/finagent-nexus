@@ -151,7 +151,9 @@ def main() -> None:
         print(f"  Holdings: {holdings}")
 
         findings = run_machine_checks(recommendation, SHARIA_MANDATE, provider)
-        verdict, blocking, remediations = aggregate_verdict(findings, revisions_remaining=2)
+        # The per-finding loop below already prints each blocking summary and
+        # each remediation, so the aggregated copies are deliberately dropped.
+        verdict, _blocking, _remediations = aggregate_verdict(findings, revisions_remaining=2)
 
         for finding in findings:
             if finding.status is FindingStatus.PASS:

@@ -271,13 +271,24 @@ def applicable_principles(
     mandate: Mandate, jurisdiction: str | None = None
 ) -> tuple[Principle, ...]:
     """Principles in force for a given mandate and jurisdiction."""
+    where = jurisdiction.upper() if jurisdiction else None
     result = []
     for principle in CONSTITUTION:
         if mandate not in principle.mandates:
             continue
-        if principle.jurisdictions is not None and jurisdiction is not None:
-            if jurisdiction.upper() not in principle.jurisdictions:
-                continue
+        # A principle with `jurisdictions = None` is universal, and an unknown
+        # caller jurisdiction narrows nothing — in both cases the principle
+        # stays in force. Scoping here is only ever *subtractive against a
+        # known pair*: no combination of inputs can drop a universal principle.
+        # That is the property that matters, because this function decides what
+        # gets reviewed at all.
+        scoped_out = (
+            principle.jurisdictions is not None
+            and where is not None
+            and where not in principle.jurisdictions
+        )
+        if scoped_out:
+            continue
         result.append(principle)
     return tuple(result)
 

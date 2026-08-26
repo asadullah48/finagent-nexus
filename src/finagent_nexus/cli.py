@@ -13,10 +13,11 @@ decision without credentials, network access, or trust in this codebase.
 from __future__ import annotations
 
 import argparse
-from dataclasses import replace
 import json
 import sys
+from dataclasses import replace
 from pathlib import Path
+from typing import Any
 
 from finagent_nexus.audit import AuditTrail
 from finagent_nexus.config import Settings
@@ -60,8 +61,13 @@ def _print_report(state: NexusState) -> int:
     else:
         print("Outcome        : INCOMPLETE")
 
-    if state.get("plan"):
-        print(f"\nThesis\n------\n{state['plan'].thesis}")
+    # Bound to a local rather than re-subscripted: `if state.get("plan")` does
+    # not narrow `state["plan"]` for a type checker, so the guard and the access
+    # were only safe by adjacency — the arrangement that breaks the moment
+    # anything is inserted between them.
+    plan = state.get("plan")
+    if plan is not None:
+        print(f"\nThesis\n------\n{plan.thesis}")
 
     if recommendation is not None:
         print("\nRecommendation")
@@ -120,7 +126,7 @@ def _cmd_run(args: argparse.Namespace) -> int:
     # an explicit constructor call silently resets every field it forgets to
     # list — which is how a security-relevant flag goes missing when the next
     # one is added.
-    overrides: dict[str, object] = {}
+    overrides: dict[str, Any] = {}
     if args.max_revisions is not None:
         overrides["max_revisions"] = args.max_revisions
     if args.allow_synthetic_data:

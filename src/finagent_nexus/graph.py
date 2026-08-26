@@ -25,9 +25,10 @@ Three properties are enforced structurally rather than by prompt:
 from __future__ import annotations
 
 from collections.abc import Callable
-from typing import Any
+from typing import Any, cast
 
 from langgraph.graph import END, START, StateGraph
+from langgraph.graph.state import CompiledStateGraph
 
 from finagent_nexus.agents import ComplianceOfficer, MarketAnalyst, WealthStrategist
 from finagent_nexus.audit import AuditTrail
@@ -79,7 +80,7 @@ def build_graph(
     strategist: WealthStrategist,
     analyst: MarketAnalyst,
     officer: ComplianceOfficer,
-):
+) -> CompiledStateGraph:
     """Compile the Plan-Act-Verify graph over the three supplied agents."""
 
     # ---------------------------- Plan ------------------------------------ #
@@ -357,4 +358,7 @@ class NexusRunner:
         # Each revision costs at most three node visits; the +10 covers plan,
         # finalize, and LangGraph's own bookkeeping.
         limit = (self.settings.max_revisions + 1) * 3 + 10
-        return self.graph.invoke(initial, config={"recursion_limit": limit})
+        # LangGraph's `invoke` is typed to return the loosely-parameterised state
+        # dict, not our NexusState. The cast asserts what the graph construction
+        # above already guarantees; it does not weaken any runtime check.
+        return cast("NexusState", self.graph.invoke(initial, config={"recursion_limit": limit}))

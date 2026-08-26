@@ -18,6 +18,8 @@ dependencies = [
 dev = [
     "pytest>=8.0",
     "pytest-cov>=5.0",
+    "ruff>=0.13",
+    "mypy>=1.11",
 ]
 
 [project.scripts]
@@ -37,3 +39,112 @@ markers = [
     "live: tests that call the Claude API (deselect with '-m \"not live\"')",
 ]
 addopts = "-m 'not live'"
+
+# --------------------------------------------------------------------------- #
+# Lint
+#
+# Every suppression below names the constraint that forces it. A blanket ignore
+# with no reason is how a lint config stops being a control and becomes
+# decoration — the same failure mode this repository argues against for prompts.
+#
+# Note that `api/screen.py` previously carried `noqa: E402` and `noqa: N802`
+# comments. Ruff raises neither (its E402 permits imports after a `sys.path`
+# shim, and its N802 exempts BaseHTTPRequestHandler overrides), so RUF100
+# removed them as unused. The constraints they documented are real and are now
+# recorded as prose in that file; only N801 needs an actual suppression.
+# --------------------------------------------------------------------------- #
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+src = ["src", "tests", "api", "examples"]
+
+[tool.ruff.lint]
+select = [
+    "E",    # pycodestyle errors
+    "W",    # pycodestyle warnings
+    "F",    # pyflakes
+    "I",    # import sorting
+    "N",    # pep8-naming
+    "UP",   # pyupgrade
+    "B",    # flake8-bugbear
+    "BLE",  # flake8-blind-except
+    "C4",   # comprehensions
+    "SIM",  # flake8-simplify
+    "RUF",  # ruff-specific
+]
+ignore = [
+    # The prose in this codebase is part of the deliverable: docstrings quote
+    # thresholds, regulator citations, and Arabic terms that must not be
+    # reflowed to satisfy a linter.
+    "E501",
+    # RUF001-003 flag "ambiguous" Unicode. The constitution and the Arabic
+    # README use those characters on purpose.
+    "RUF001",
+    "RUF002",
+    "RUF003",
+    # N818 wants `ModelRefusal` renamed to `ModelRefusalError`. Declined on two
+    # grounds: it is a public exception, so renaming breaks importers; and a
+    # refusal is not an error. The model declining a request is a legitimate,
+    # expected outcome that `graph.py` records with status "refused" and drains
+    # to finalize — distinct from `AgentError`, which is a malfunction. The
+    # names carry that distinction and should keep it.
+    "N818",
+    # UP042 wants `class Mandate(str, Enum)` rewritten to `StrEnum`. Declined:
+    # the two differ in `__format__`/`__str__`, so the rewrite would silently
+    # change every f-string and `json.dumps` of a bare member from
+    # "Mandate.SHARIA" to "sharia". These enum values are written into the
+    # hash-chained audit trail; a serialisation change is a governance change,
+    # not a style change. The code reads `.value` explicitly everywhere.
+    "UP042",
+]
+
+[tool.ruff.lint.per-file-ignores]
+# Vercel's Python runtime resolves the entry point by looking for a module-level
+# object literally named `handler`. CapWords is not available to us here.
+"api/screen.py" = ["N801"]
+# Tests assert on private chain state (`trail._events`) when verifying that
+# tampering is detected — that is the point of the test.
+"tests/**" = ["SLF001"]
+
+# --------------------------------------------------------------------------- #
+# Types
+#
+# `src/` is checked strictly because it is the part other people import.
+# `tests/` and `examples/` are checked loosely: a test that constructs a
+# deliberately malformed payload should not have to satisfy the type checker to
+# prove the runtime rejects it.
+# --------------------------------------------------------------------------- #
+[tool.mypy]
+python_version = "3.11"
+files = ["src"]
+strict = false
+warn_unused_configs = true
+warn_redundant_casts = true
+warn_unused_ignores = true
+no_implicit_optional = true
+check_untyped_defs = true
+disallow_untyped_defs = true
+disallow_incomplete_defs = true
+
+[[tool.mypy.overrides]]
+# LangGraph ships py.typed, but `StateGraph.add_node` is a four-way overload
+# over an eleven-member callable union that our plain `NodeFn`
+# (`Callable[[NexusState], dict[str, Any]]`) does not match, even though it is
+# exactly what LangGraph invokes at runtime. Only `call-overload` is disabled,
+# and only for this one module, so every other class of type error in the
+# graph — the governance artefact — is still caught.
+module = ["finagent_nexus.graph"]
+disable_error_code = ["call-overload"]
+
+[tool.coverage.run]
+source = ["src/finagent_nexus"]
+branch = true
+
+[tool.coverage.report]
+# `if __name__ == "__main__"` blocks and Protocol bodies are not behaviour.
+exclude_lines = [
+    "pragma: no cover",
+    "if __name__ == .__main__.:",
+    "raise NotImplementedError",
+    "\\.\\.\\.",
+]

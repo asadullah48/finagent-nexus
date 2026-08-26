@@ -18,9 +18,6 @@ from __future__ import annotations
 from finagent_nexus.checks import run_machine_checks
 from finagent_nexus.constitution import applicable_principles, render_for_prompt
 from finagent_nexus.llm import ClaudeClient, compact_json
-# Re-exported so existing callers keep working; the policy itself lives in a
-# module that does not import the model client. See finagent_nexus.verdict.
-from finagent_nexus.verdict import aggregate_verdict
 from finagent_nexus.state import (
     ClientRequest,
     ComplianceFindings,
@@ -31,6 +28,10 @@ from finagent_nexus.state import (
     Recommendation,
 )
 from finagent_nexus.tools.market_data import MarketDataProvider
+
+# Re-exported so existing callers keep working; the policy itself lives in a
+# module that does not import the model client. See finagent_nexus.verdict.
+from finagent_nexus.verdict import aggregate_verdict
 
 SYSTEM_PROMPT_HEADER = """You are ComplianceOfficer, the second line of defence in a \
 regulated financial institution. You review a proposed investment recommendation against a \

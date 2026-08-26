@@ -175,4 +175,4 @@ SPEC.md              Full technical specification
 
 This is a reference implementation, not a licensed advisory product. It is not investment advice, it does not constitute a Shari'ah opinion, and the screening thresholds must be confirmed by your own Shari'ah board — methodologies differ materially between AAOIFI, Dow Jones Islamic Market, and S&P Shariah, and choosing between them is a governance decision, not a technical one.
 
-Licensed under Apache-2.0.
+Licensed under the [MIT License](LICENSE).

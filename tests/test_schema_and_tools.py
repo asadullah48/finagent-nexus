@@ -18,7 +18,7 @@ from finagent_nexus.state import (
     Plan,
     Recommendation,
 )
-from finagent_nexus.tools import TOOL_SPECS, ToolDispatcher
+from finagent_nexus.tools import TOOL_SPECS
 
 ALL_OUTPUT_MODELS = [Plan, MarketBrief, Recommendation, ComplianceFindings]
 

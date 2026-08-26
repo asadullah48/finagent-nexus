@@ -33,16 +33,16 @@ from typing import Any
 # The package lives in src/ and is not pip-installed in the function bundle.
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "src"))
 
-from finagent_nexus.checks import run_machine_checks  # noqa: E402
-from finagent_nexus.constitution import applicable_principles, by_id  # noqa: E402
-from finagent_nexus.state import (  # noqa: E402
+from finagent_nexus.checks import run_machine_checks
+from finagent_nexus.constitution import applicable_principles, by_id
+from finagent_nexus.state import (
     Allocation,
     ClientRequest,
     Mandate,
     Recommendation,
 )
-from finagent_nexus.tools.market_data import SyntheticMarketData  # noqa: E402
-from finagent_nexus.verdict import aggregate_verdict  # noqa: E402
+from finagent_nexus.tools.market_data import SyntheticMarketData
+from finagent_nexus.verdict import aggregate_verdict
 
 MAX_BODY_BYTES = 64 * 1024
 MAX_ALLOCATIONS = 40
@@ -169,7 +169,18 @@ def screen(payload: dict[str, Any]) -> dict[str, Any]:
 
 
 class handler(BaseHTTPRequestHandler):
-    """Vercel Python runtime entry point."""
+    """Vercel Python runtime entry point.
+
+    Two naming choices here are imposed from outside and are not free to change:
+
+    * The class is lowercase because Vercel's Python runtime resolves the entry
+      point by looking for a module-level object named exactly ``handler``.
+      Ruff's N801 is suppressed for this file in ``pyproject.toml``.
+    * ``do_OPTIONS`` / ``do_GET`` / ``do_POST`` are dispatched by name from
+      :class:`BaseHTTPRequestHandler`, which builds the method name from the
+      HTTP verb. Renaming them to snake_case silently disables the route rather
+      than failing loudly, so they must keep their shouted suffixes.
+    """
 
     def _send(self, status: int, body: dict[str, Any]) -> None:
         encoded = json.dumps(body, ensure_ascii=False).encode("utf-8")
@@ -183,10 +194,10 @@ class handler(BaseHTTPRequestHandler):
         self.end_headers()
         self.wfile.write(encoded)
 
-    def do_OPTIONS(self) -> None:  # noqa: N802 — required by BaseHTTPRequestHandler
+    def do_OPTIONS(self) -> None:
         self._send(204, {})
 
-    def do_GET(self) -> None:  # noqa: N802
+    def do_GET(self) -> None:
         """A GET returns the contract, so the endpoint is self-describing."""
         self._send(
             200,
@@ -208,7 +219,7 @@ class handler(BaseHTTPRequestHandler):
             },
         )
 
-    def do_POST(self) -> None:  # noqa: N802
+    def do_POST(self) -> None:
         try:
             length = int(self.headers.get("Content-Length") or 0)
         except ValueError:

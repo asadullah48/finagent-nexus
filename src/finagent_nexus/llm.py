@@ -22,6 +22,7 @@ from dataclasses import dataclass, field
 from typing import Any, Generic, TypeVar
 
 import anthropic
+from anthropic.types import MessageParam, ToolResultBlockParam
 from pydantic import BaseModel, ValidationError
 
 from finagent_nexus.config import Settings
@@ -184,7 +185,7 @@ class ClaudeClient:
         if tools:
             request["tools"] = tools
 
-        messages: list[dict[str, Any]] = [{"role": "user", "content": user}]
+        messages: list[MessageParam] = [{"role": "user", "content": user}]
         response = None
 
         for _ in range(self.settings.max_tool_iterations):
@@ -208,7 +209,10 @@ class ClaudeClient:
                 break
 
             messages.append({"role": "assistant", "content": response.content})
-            results: list[dict[str, Any]] = []
+            # Typed as the SDK's own block type rather than `dict[str, Any]`:
+            # the four keys below are an API contract, and a typo in one of them
+            # surfaces as a 400 from Anthropic mid-run rather than at the edit.
+            results: list[ToolResultBlockParam] = []
             for block in tool_uses:
                 arguments = dict(block.input or {})
                 payload, is_error = dispatch(block.name, arguments)  # type: ignore[misc]
