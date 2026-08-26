@@ -93,6 +93,32 @@ def test_a_full_offline_screen_needs_no_model_client() -> None:
     assert leaked == set(), "deterministic path pulled in: " + repr(sorted(leaked))
 
 
+def test_the_cli_does_not_import_the_model_client() -> None:
+    """The auditor's tools must not require the agent stack.
+
+    ``verify-audit``, ``replay`` and ``eval`` are deterministic-side commands,
+    but they live in a module that used to import :class:`NexusRunner` at top
+    level — which pulled ``anthropic`` and ``langgraph`` into every invocation.
+    The claim that an auditor needs only the file and Python was therefore false
+    against a minimal install. ``NexusRunner`` is now imported inside
+    ``_cmd_run``; this test is what keeps it there.
+    """
+    leaked = _forbidden_modules_after("import finagent_nexus.cli")
+    assert leaked == set(), "the CLI pulled in: " + repr(sorted(leaked))
+
+
+def test_the_eval_harness_does_not_import_the_model_client() -> None:
+    """Ongoing monitoring of the arithmetic screens must run without an SDK."""
+    leaked = _forbidden_modules_after("from finagent_nexus.evaluation import report, run_suite")
+    assert leaked == set(), "the eval harness pulled in: " + repr(sorted(leaked))
+
+
+def test_provider_policy_does_not_import_the_model_client() -> None:
+    """The synthetic-data guard must be enforceable from the deterministic half."""
+    leaked = _forbidden_modules_after("from finagent_nexus.provider_policy import resolve_provider")
+    assert leaked == set(), "the provider policy pulled in: " + repr(sorted(leaked))
+
+
 def test_aggregate_verdict_keeps_its_original_import_paths() -> None:
     """Relocating the policy must not break existing callers."""
     from finagent_nexus.agents import aggregate_verdict as from_package

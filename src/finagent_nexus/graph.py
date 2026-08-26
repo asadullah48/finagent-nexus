@@ -35,8 +35,9 @@ from finagent_nexus.audit import AuditTrail
 from finagent_nexus.config import Settings
 from finagent_nexus.constitution import REQUIRES_NEW_EVIDENCE
 from finagent_nexus.llm import AgentError, ClaudeClient, ModelRefusal
+from finagent_nexus.provider_policy import resolve_provider
 from finagent_nexus.state import ClientRequest, FindingStatus, NexusState, Verdict
-from finagent_nexus.tools import SyntheticMarketData, ToolDispatcher
+from finagent_nexus.tools import ToolDispatcher
 from finagent_nexus.tools.market_data import MarketDataProvider
 
 NodeFn = Callable[[NexusState], dict[str, Any]]
@@ -293,45 +294,21 @@ class NexusRunner:
     def _resolve_provider(self, provider: MarketDataProvider | None) -> MarketDataProvider:
         """Decide what market data this runner is allowed to run on.
 
-        Synthetic data is **opt-in and never inherited**. An explicit provider
-        always wins; absent one, :class:`SyntheticMarketData` is supplied only
-        when ``settings.allow_synthetic_data`` says so, and otherwise this
-        raises rather than falling back.
-
-        The rejected alternative was to default the fallback on, so the
-        repository ran out of the box. That makes forgetting to inject a
-        provider indistinguishable from a working deployment: the arithmetic
-        screens still run, the constitution is still applied, and the
-        hash-chained trail still notarises a beautifully compliant
-        recommendation — built entirely on prices fabricated from a hash of the
-        symbol. The audit trail does not protect you there; it records the
-        wrong thing, credibly. A loud failure at construction is cheaper than a
-        credible record of a fictional portfolio.
+        The policy itself lives in :func:`finagent_nexus.provider_policy.resolve_provider`,
+        which imports no model client — so ``finagent eval`` and any other
+        deterministic-side caller enforces the identical rule, in the identical
+        words, without installing the agent stack. Read that function for the
+        reasoning; this method only supplies the setting.
 
         The chosen policy is captured in :meth:`Settings.fingerprint`, so every
         run's audit record states which market data regime it ran under.
 
         Raises:
-            RuntimeError: No provider was supplied and synthetic data is not
-                permitted by the current settings.
+            SyntheticDataNotPermitted: No provider was supplied and synthetic
+                data is not permitted by the current settings. It subclasses
+                ``RuntimeError``, so existing handlers are unaffected.
         """
-        if provider is not None:
-            return provider
-        if not self.settings.allow_synthetic_data:
-            raise RuntimeError(
-                "No MarketDataProvider was supplied and synthetic market data "
-                "is disabled. SyntheticMarketData fabricates deterministic "
-                "prices from a hash of the symbol and must never inform live "
-                "advice.\n"
-                "  Production: pass a real provider, e.g. "
-                "NexusRunner(provider=YourMarketDataProvider()).\n"
-                "  Demos and tests: opt in explicitly with "
-                "FINAGENT_ALLOW_SYNTHETIC_DATA=true, the "
-                "--allow-synthetic-data flag, or by passing "
-                "SyntheticMarketData() directly.\n"
-                "See docs/governance.md section 7 (pre-production checklist)."
-            )
-        return SyntheticMarketData()
+        return resolve_provider(provider, allow_synthetic=self.settings.allow_synthetic_data)
 
     def run(self, request: ClientRequest, correlation_id: str | None = None) -> NexusState:
         trail = AuditTrail(correlation_id=correlation_id, directory=self.settings.audit_dir)

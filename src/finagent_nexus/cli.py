@@ -1,13 +1,23 @@
 """Command-line entry point.
 
-    finagent run --mandate examples/mandates/balanced_sharia.json
-    finagent run --objective "Preserve capital" --capital 2500000 --horizon 7
+    finagent run          --mandate examples/mandates/balanced_sharia.json
     finagent verify-audit audit/<correlation-id>.jsonl
+    finagent replay       audit/<correlation-id>.jsonl
+    finagent eval         --dataset tests/eval/datasets/golden_cases.json
 
-The ``verify-audit`` subcommand exists so that checking a run's integrity does
-not require the rest of the system: it reads the JSONL, recomputes the hash
-chain, and prints the result. An auditor with the file and Python can verify a
-decision without credentials, network access, or trust in this codebase.
+Three of those four subcommands are **deterministic-side tools**: they recompute
+a hash chain, re-render a recorded decision, or replay golden cases through the
+arithmetic screens. None of them needs a model, a credential, or a network.
+
+That is why :class:`~finagent_nexus.graph.NexusRunner` is imported inside
+``_cmd_run`` rather than at module scope. Importing it here pulled ``anthropic``,
+``langgraph``, ``langchain_core`` and ``httpx`` into every invocation, including
+``verify-audit`` — so the promise that "an auditor with the file and Python can
+verify a decision without credentials, network access, or trust in this codebase"
+was false the moment they tried to install only what they needed. It is the same
+leak that moved ``aggregate_verdict`` into :mod:`finagent_nexus.verdict`, one
+layer further out. ``tests/test_deterministic_isolation.py`` now holds this
+module to that boundary in a subprocess.
 """
 
 from __future__ import annotations
@@ -19,9 +29,10 @@ from dataclasses import replace
 from pathlib import Path
 from typing import Any
 
-from finagent_nexus.audit import AuditTrail
+from finagent_nexus.audit import AuditEvent, AuditTrail
 from finagent_nexus.config import Settings
-from finagent_nexus.graph import NexusRunner
+from finagent_nexus.evaluation import report, run_suite
+from finagent_nexus.provider_policy import SyntheticDataNotPermitted, resolve_provider
 from finagent_nexus.state import ClientRequest, Mandate, NexusState, Verdict
 
 
@@ -121,6 +132,10 @@ def _print_report(state: NexusState) -> int:
 
 
 def _cmd_run(args: argparse.Namespace) -> int:
+    # Imported here, not at module scope: this is the only subcommand that needs
+    # the model half of the system. See the module docstring.
+    from finagent_nexus.graph import NexusRunner
+
     settings = Settings.from_env()
     # ``replace`` rather than rebuilding field by field: Settings is frozen, and
     # an explicit constructor call silently resets every field it forgets to
@@ -151,6 +166,167 @@ def _cmd_verify_audit(args: argparse.Namespace) -> int:
         return 1
     for event in trail.events:
         print(f"  {event.seq:>3}  {event.ts}  {event.actor:<18} {event.action:<16} {event.status}")
+    return 0
+
+
+def _events_by_action(trail: AuditTrail) -> dict[str, list[AuditEvent]]:
+    grouped: dict[str, list[AuditEvent]] = {}
+    for event in trail.events:
+        grouped.setdefault(event.action, []).append(event)
+    return grouped
+
+
+def _cmd_replay(args: argparse.Namespace) -> int:
+    """Reconstruct a decision from its audit trail alone.
+
+    This is the read-back half of the tamper-evidence claim. ``verify-audit``
+    answers "has this file been altered?"; ``replay`` answers "what was decided,
+    on what evidence, and under which configuration?" — six months later, from
+    the file, with no model and no credentials.
+
+    It **refuses to render an invalid chain**. A trail that does not verify is
+    not a weaker record, it is an unknown one, and printing a tidy report from it
+    would launder exactly the tampering the chain exists to expose. Same
+    fail-closed rule the verdict policy applies to an unverifiable finding.
+    """
+    path = Path(args.path)
+    if not path.exists():
+        print(f"No such audit file: {path}", file=sys.stderr)
+        return 2
+
+    trail = AuditTrail.load(path)
+    if not trail.verify():
+        print(f"{path}: hash chain BROKEN — refusing to replay.", file=sys.stderr)
+        print(
+            "The trail has been altered since it was written, so nothing "
+            "reconstructed from it can be relied upon. Run `finagent "
+            "verify-audit` to locate the break.",
+            file=sys.stderr,
+        )
+        return 1
+
+    grouped = _events_by_action(trail)
+    print("=" * 72)
+    print("FinAgent-Nexus — replayed from audit trail")
+    print("=" * 72)
+    print(f"Source         : {path}")
+    print(f"Correlation ID : {trail.correlation_id}")
+    print(f"Events         : {len(trail.events)} | chain valid: True")
+
+    for event in grouped.get("accept_mandate", []):
+        request = event.detail.get("request", {})
+        settings = event.detail.get("settings", {})
+        print(f"\nMandate accepted {event.ts}")
+        print("-" * 72)
+        print(f"  Client      : {request.get('client_id')}")
+        print(f"  Objective   : {request.get('objective')}")
+        print(
+            f"  Capital     : {request.get('capital_usd')} USD over "
+            f"{request.get('horizon_years')} years"
+        )
+        print(
+            f"  Mandate     : {request.get('mandate')}/{request.get('jurisdiction')} "
+            f"({request.get('risk_tolerance')})"
+        )
+        for constraint in request.get("constraints") or []:
+            print(f"    · {constraint}")
+        # The data regime is the first thing a reviewer should see. A flawless
+        # trail built on fabricated prices is the failure mode this records.
+        print(f"  Model       : {settings.get('model')} at effort {settings.get('effort')}")
+        print(f"  Synthetic   : {settings.get('allow_synthetic_data')}")
+
+    for event in grouped.get("plan", []):
+        print(f"\nPlan  ({event.model})")
+        print("-" * 72)
+        print(f"  {event.detail.get('thesis')}")
+        print(f"  Universe: {', '.join(event.detail.get('universe') or [])}")
+
+    for event in grouped.get("analyse", []):
+        detail = event.detail
+        print(f"\nAnalysis  revision {detail.get('revision')}  ({event.model})")
+        print("-" * 72)
+        print(
+            f"  {detail.get('tool_calls')} tool calls, "
+            f"{detail.get('tool_errors')} errors, "
+            f"instruments: {', '.join(detail.get('instruments') or [])}"
+        )
+        for line in detail.get("evidence") or []:
+            print(f"    · {line}")
+
+    for event in grouped.get("synthesize", []):
+        detail = event.detail
+        allocations: dict[str, float] = detail.get("allocations") or {}
+        print(f"\nRecommendation  revision {detail.get('revision')}  ({event.model})")
+        print("-" * 72)
+        for symbol, weight in allocations.items():
+            print(f"  {symbol:<14}{weight:>8.1f}%")
+        print(f"  {'TOTAL':<14}{sum(allocations.values()):>8.1f}%")
+        print(
+            f"  Expected return {detail.get('expected_return_pct')}% | "
+            f"volatility {detail.get('expected_volatility_pct')}%"
+        )
+
+    for event in grouped.get("review", []):
+        detail = event.detail
+        print(
+            f"\nCompliance review  revision {detail.get('revision')}  "
+            f"-> {str(detail.get('verdict')).upper()}"
+        )
+        print("-" * 72)
+        for principle_id, status in (detail.get("findings") or {}).items():
+            mark = {"pass": "PASS", "fail": "FAIL", "unverifiable": "????"}.get(status, status)
+            print(f"  [{mark}] {principle_id}")
+        for failure in detail.get("blocking_failures") or []:
+            print(f"  BLOCKING: {failure}")
+        for remediation in detail.get("remediations") or []:
+            print(f"  fix: {remediation}")
+
+    for event in grouped.get("finalize", []):
+        detail = event.detail
+        print(f"\nOutcome: {str(detail.get('outcome')).upper()}")
+        print("-" * 72)
+        print(f"  Revisions used : {detail.get('revisions_used')}")
+        if detail.get("halted_reason"):
+            print(f"  Halted         : {detail.get('halted_reason')}")
+
+    summary = trail.summary()
+    print("\nCost and latency")
+    print("-" * 72)
+    print(
+        f"  tokens in/out: {summary['input_tokens']}/{summary['output_tokens']} "
+        f"(cached {summary['cache_read_input_tokens']}) | "
+        f"{summary['latency_ms']} ms of model time"
+    )
+    return 0
+
+
+def _cmd_eval(args: argparse.Namespace) -> int:
+    """Replay golden cases through the deterministic screens.
+
+    Exits non-zero when a case fails, so a scheduled validation run is a build
+    step rather than a report somebody has to read.
+    """
+    dataset = Path(args.dataset)
+    if not dataset.exists():
+        print(f"No such dataset: {dataset}", file=sys.stderr)
+        return 2
+
+    settings = Settings.from_env()
+    allow_synthetic = args.allow_synthetic_data or settings.allow_synthetic_data
+    try:
+        # Same policy object the runner uses, so the eval cannot be run under a
+        # data regime the runner would have refused.
+        provider = resolve_provider(None, allow_synthetic=allow_synthetic)
+    except SyntheticDataNotPermitted as exc:
+        print(str(exc), file=sys.stderr)
+        return 2
+
+    results = run_suite(provider, dataset)
+    print(report(results))
+    failures = [r for r in results if not r.passed]
+    if failures:
+        print(f"\n{len(failures)} case(s) failed.", file=sys.stderr)
+        return 1
     return 0
 
 
@@ -189,6 +365,34 @@ def build_parser() -> argparse.ArgumentParser:
     verify = sub.add_parser("verify-audit", help="Recompute an audit trail's hash chain.")
     verify.add_argument("path", help="Path to a .jsonl audit trail.")
     verify.set_defaults(func=_cmd_verify_audit)
+
+    replay = sub.add_parser(
+        "replay",
+        help="Reconstruct a decision from its audit trail. Refuses a broken chain.",
+    )
+    replay.add_argument("path", help="Path to a .jsonl audit trail.")
+    replay.set_defaults(func=_cmd_replay)
+
+    evaluate = sub.add_parser(
+        "eval",
+        help="Replay golden cases through the deterministic screens; non-zero on failure.",
+    )
+    evaluate.add_argument(
+        "--dataset",
+        required=True,
+        help=(
+            "Path to a golden-case JSON dataset. Required by design: these are "
+            "your claims about your constitution, and a default would let a "
+            "deployment replay the bundled demo while believing it had "
+            "validated its own thresholds."
+        ),
+    )
+    evaluate.add_argument(
+        "--allow-synthetic-data",
+        action="store_true",
+        help="Permit the bundled synthetic market data fixture. Demos only.",
+    )
+    evaluate.set_defaults(func=_cmd_eval)
 
     return parser
 
