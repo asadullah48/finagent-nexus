@@ -63,7 +63,7 @@ def main(argv: list[str]) -> int:
     settings = Settings.from_env()
     # This example is a demo and runs on the synthetic fixture, so it opts in
     # explicitly. Synthetic data is never inherited from a default: see
-    # NexusRunner._resolve_provider and docs/governance.md section 7.
+    # provider_policy.resolve_provider and docs/governance.md section 7.
     runner = NexusRunner(settings=replace(settings, allow_synthetic_data=True))
 
     print("=" * 78)

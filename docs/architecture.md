@@ -61,6 +61,29 @@ in `agents/compliance_officer.py`, so screening a portfolio transitively importe
 SDK. Nothing broke, because the SDK was installed everywhere it ran — the leak stayed invisible
 until a deployment tried to install only what it needed.
 
+It then leaked a second time, in the same shape, one layer out. `cli.py` imported `NexusRunner` at
+module scope, so `finagent verify-audit` — a command whose entire purpose is recomputing a SHA-256
+chain — pulled in `anthropic`, `langgraph`, `langchain_core` and `httpx`. The claim that an auditor
+needs only the file and Python was false against a minimal install. `NexusRunner` is now imported
+inside `_cmd_run`, and the isolation suite covers `cli.py`, `evaluation.py` and `provider_policy.py`
+as well.
+
+Because a subprocess check can only inspect `sys.modules` inside a *full* virtualenv, CI adds the
+stronger version. The `determinism-boundary` job installs `requirements.txt` plus `-e . --no-deps`,
+asserts that both packages are genuinely unimportable, and then runs the screening endpoint and the
+eval harness anyway.
+
+It leaked a second time, in the same shape one layer out. `cli.py` imported `NexusRunner` at module
+scope, so `finagent verify-audit` — a command whose whole purpose is recomputing a SHA-256 chain —
+pulled in `anthropic`, `langgraph`, `langchain_core` and `httpx`. The claim that an auditor needs
+only the file and Python was false against a minimal install. `NexusRunner` is now imported inside
+`_cmd_run`, and the isolation suite covers `cli.py`, `evaluation.py` and `provider_policy.py` too.
+
+Because a subprocess check can only inspect `sys.modules` inside a *full* virtualenv, CI adds the
+stronger version: the `determinism-boundary` job installs `requirements.txt` plus `-e . --no-deps`,
+asserts both packages are genuinely unimportable, and then runs the screening endpoint and the eval
+harness anyway.
+
 ---
 
 ## 3. Four boundaries worth knowing
@@ -86,7 +109,9 @@ harness reproducible and the test suite runnable with no network and no key.
 
 > It is **not** a market simulator and must not be used for live advice.
 
-Because that fixture is indistinguishable from real data to every downstream control, it is **opt-in and never inherited**. `NexusRunner._resolve_provider` raises when no provider is supplied and `settings.allow_synthetic_data` is false — the default. An explicit provider always wins, and the chosen policy is recorded in `Settings.fingerprint()`, so every audit trail states which market data regime its run used.
+Because that fixture is indistinguishable from real data to every downstream control, it is **opt-in and never inherited**. `provider_policy.resolve_provider` raises when no provider is supplied and synthetic data is not permitted — the default. An explicit provider always wins, and the chosen policy is recorded in `Settings.fingerprint()`, so every audit trail states which market data regime its run used.
+
+The policy lives in its own module rather than inside `NexusRunner`, because reaching it through the runner meant importing LangGraph and the Anthropic SDK to ask a question with no model in it. `finagent eval` needs the identical guarantee and would otherwise have had to restate the rule — and a restated control is a control with two versions of the truth. Both paths now refuse in the same words.
 
 ### 3.3 The determinism boundary — `checks.py` vs model critique
 
@@ -163,7 +188,10 @@ constitution if it introduces new obligations, add golden cases.
 | Deterministic checks | `tests/test_checks.py` | Arithmetic screens, offline |
 | Risk policy | `tests/test_verdict.py` | `aggregate_verdict` maps findings to verdicts |
 | Trail integrity | `tests/test_audit.py` | Tampering breaks the chain |
-| Orchestration | `tests/test_graph.py` | Routing, bounds, halt-and-drain |
+| Orchestration | `tests/test_graph.py` | Routing, bounds, halt-and-drain, what issuance records |
+| Auditor's commands | `tests/test_cli.py` | Exit codes; `replay` refuses a broken chain |
+| Public endpoint | `tests/test_api_screen.py` | HTTP contract over a real socket; input validation |
+| Import boundary | `tests/test_deterministic_isolation.py` | No deterministic module reaches the SDK |
 | End-to-end behaviour | `tests/eval/` | Golden cases through the eval harness |
 
 The whole suite runs with **no API key and no network**, because the deterministic half of the
@@ -172,3 +200,8 @@ system genuinely does not need one:
 ```bash
 pytest -q
 ```
+
+CI runs that on 3.11, 3.12 and 3.13, then adds three jobs the unit suite cannot express: the
+minimal-install boundary check described above, a tamper test that alters a written trail and
+asserts both `verify-audit` and `replay` reject it, and the golden cases as a merge gate. None of
+them needs a credential.

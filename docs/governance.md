@@ -165,13 +165,21 @@ Before this system touches a client mandate:
 
 - [ ] `SyntheticMarketData` replaced with a real `MarketDataProvider` implementation, and
       `FINAGENT_ALLOW_SYNTHETIC_DATA` left `false` so a missing provider fails loudly
-      (enforced in `NexusRunner._resolve_provider`; regression tests in
-      `tests/test_graph.py::TestSyntheticDataGuard`)
+      (enforced in `provider_policy.resolve_provider`, which both `NexusRunner` and
+      `finagent eval` route through, so neither can run under a data regime the other would
+      refuse; regression tests in `tests/test_graph.py::TestSyntheticDataGuard`)
 - [ ] Constitution reviewed and signed off by the Shari'ah board and/or compliance function
 - [ ] `SHARIA_THRESHOLDS` reconciled to your board's methodology; eval harness re-run
 - [ ] `aggregate_verdict` risk appetite confirmed by the risk committee
+- [ ] `retention.issuance_record` reviewed against your records policy. The default notarises the
+      client-facing advice in full, which is what a conduct regulator generally expects to find and
+      which also places the advice itself inside the audit store, changing its retention class and
+      access controls. The digest-only alternative is documented in that function
 - [ ] Audit directory pointed at write-once storage; retention period set
 - [ ] `verify-audit` scheduled as a periodic integrity control, not run only on demand
+- [ ] `finagent replay` exercised against a real trail, so the record is known to be *sufficient*
+      and not merely intact — a hash chain over an incomplete record proves only that the
+      incomplete record was not altered
 - [ ] Escalation path staffed — who receives a `BLOCK`, within what SLA
 - [ ] Model routing reviewed: the ComplianceOfficer is **not** downgraded for cost reasons
 - [ ] Baseline captured for the ROI metrics in SPEC §6, so improvement is measurable
