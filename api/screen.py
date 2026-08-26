@@ -24,6 +24,7 @@ figures from a hash of the symbol. Every response says so in ``data_source``.
 from __future__ import annotations
 
 import json
+import math
 import os
 import sys
 import time
@@ -32,6 +33,8 @@ from typing import Any
 
 # The package lives in src/ and is not pip-installed in the function bundle.
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "src"))
+
+from pydantic import ValidationError
 
 from finagent_nexus.checks import run_machine_checks
 from finagent_nexus.constitution import applicable_principles, by_id
@@ -60,6 +63,33 @@ class ScreenError(ValueError):
     """A caller-supplied payload that cannot be screened, with a usable reason."""
 
 
+def _number(payload: dict[str, Any], key: str, default: float) -> float:
+    """Read a finite float, or refuse the request.
+
+    Python's ``json`` module accepts the non-standard ``NaN``, ``Infinity`` and
+    ``-Infinity`` literals, so a caller can put a non-finite value into any
+    numeric field. ``weight_pct`` happens to be caught by its ``ge``/``le``
+    bounds — every comparison against NaN is False — but ``expected_return_pct``
+    and ``expected_volatility_pct`` are unbounded and are read by no
+    deterministic screen, so ``Infinity`` sails through and the endpoint returns
+    a confident verdict having never remarked on it.
+
+    This is deliberately handled as *input validation* and not as a new
+    principle. A non-finite figure is not a portfolio that breaches a rule; it
+    is a malformed request, and 400 is the honest answer. Adding a constitution
+    principle to catch it would be a governance change — see docs/governance.md
+    section 3 on who is allowed to make those.
+    """
+    raw = payload.get(key, default)
+    try:
+        value = float(raw)
+    except (TypeError, ValueError):
+        raise ScreenError(f"{key} must be a number.") from None
+    if not math.isfinite(value):
+        raise ScreenError(f"{key} must be a finite number; got {raw!r}.")
+    return value
+
+
 def _build_request(payload: dict[str, Any]) -> ClientRequest:
     mandate_raw = str(payload.get("mandate", "sharia")).strip().lower()
     try:
@@ -68,11 +98,17 @@ def _build_request(payload: dict[str, Any]) -> ClientRequest:
         valid = ", ".join(m.value for m in Mandate)
         raise ScreenError(f"Unknown mandate {mandate_raw!r}. Expected one of: {valid}.") from None
 
+    horizon_raw = payload.get("horizon_years", 10)
+    try:
+        horizon = int(horizon_raw)
+    except (TypeError, ValueError):
+        raise ScreenError(f"horizon_years must be a whole number; got {horizon_raw!r}.") from None
+
     return ClientRequest(
         client_id=str(payload.get("client_id", "WEB-SCREENER")),
         objective=str(payload.get("objective", "Screen a candidate portfolio for compliance.")),
-        capital_usd=float(payload.get("capital_usd", 1_000_000.0)),
-        horizon_years=int(payload.get("horizon_years", 10)),
+        capital_usd=_number(payload, "capital_usd", 1_000_000.0),
+        horizon_years=horizon,
         risk_tolerance=payload.get("risk_tolerance", "balanced"),
         jurisdiction=str(payload.get("jurisdiction", "SA")).strip().upper(),
         mandate=mandate,
@@ -94,10 +130,14 @@ def _build_recommendation(payload: dict[str, Any]) -> Recommendation:
         symbol = str(item.get("symbol", "")).strip()
         if not symbol:
             raise ScreenError(f"allocations[{index}] is missing 'symbol'.")
-        try:
-            weight = float(item.get("weight_pct", 0))
-        except (TypeError, ValueError):
-            raise ScreenError(f"allocations[{index}].weight_pct must be a number.") from None
+        weight = _number(item, "weight_pct", 0.0)
+        if not 0.0 <= weight <= 100.0:
+            # Caught here rather than left to the model's field bounds, so the
+            # caller is told which allocation is wrong instead of receiving a
+            # pydantic dump for the whole payload.
+            raise ScreenError(
+                f"allocations[{index}].weight_pct must be between 0 and 100; got {weight}."
+            )
         allocations.append(
             Allocation(
                 symbol=symbol,
@@ -111,8 +151,8 @@ def _build_recommendation(payload: dict[str, Any]) -> Recommendation:
     return Recommendation(
         summary=str(payload.get("summary", "Candidate portfolio submitted for screening.")),
         allocations=allocations,
-        expected_return_pct=float(payload.get("expected_return_pct", 7.0)),
-        expected_volatility_pct=float(payload.get("expected_volatility_pct", 11.0)),
+        expected_return_pct=_number(payload, "expected_return_pct", 7.0),
+        expected_volatility_pct=_number(payload, "expected_volatility_pct", 11.0),
         review_cadence=str(payload.get("review_cadence", "Quarterly.")),
         # Disclosures are screened, not assumed: an empty list is a legitimate
         # input that the capital-at-risk principle is entitled to fail.
@@ -123,8 +163,18 @@ def _build_recommendation(payload: dict[str, Any]) -> Recommendation:
 def screen(payload: dict[str, Any]) -> dict[str, Any]:
     """Run every deterministic principle in force and aggregate a verdict."""
     started = time.perf_counter()
-    request = _build_request(payload)
-    recommendation = _build_recommendation(payload)
+    try:
+        request = _build_request(payload)
+        recommendation = _build_recommendation(payload)
+    except ValidationError as exc:
+        # Whatever the hand-written checks above did not catch, the models will.
+        # Translated to a ScreenError so the caller gets the offending field
+        # rather than a pydantic dump of the entire payload.
+        problems = "; ".join(
+            f"{'.'.join(str(p) for p in err['loc']) or 'payload'}: {err['msg']}"
+            for err in exc.errors()
+        )
+        raise ScreenError(f"Invalid portfolio: {problems}") from None
 
     findings = run_machine_checks(recommendation, request, _PROVIDER)
     verdict, blocking, remediations = aggregate_verdict(findings, SCREENING_REVISION_HEADROOM)
