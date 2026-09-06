@@ -102,6 +102,24 @@ python examples/wealth_strategy.py     # the full Plan-Act-Verify loop
 
 `compliance_check.py` runs with **no API key at all** — the deterministic screens are pure functions. That is the point.
 
+### The screening endpoint
+
+`api/screen.py` deploys the deterministic half on its own — no model call, so no credential in the
+deployment to leak and no per-request token cost to meter. It answers in milliseconds, and returns
+the same verdict for the same input forever:
+
+```bash
+curl -X POST https://<your-deployment>/api/screen \
+  -H 'content-type: application/json' \
+  -d '{"mandate": "sharia",
+       "allocations": [{"symbol": "2222.SR",   "weight_pct": 31},
+                       {"symbol": "SUKUK.GCC", "weight_pct": 69}]}'
+```
+
+Every response carries `"model_calls": 0` and `"data_source": "synthetic"`. The qualitative
+principles — suitability, gharar, fair presentation — are deliberately not served here: they need a
+model, and a model needs a key.
+
 > **On `--allow-synthetic-data`.** The bundled market data provider fabricates deterministic prices from a hash of the symbol. It exists so the repository is runnable and the eval harness is reproducible — it is **not** a market simulator. Synthetic data is therefore opt-in and never inherited from a default: a runner constructed without a real `MarketDataProvider` raises rather than quietly falling back. Forgetting to inject a provider would otherwise be indistinguishable from a working deployment, since every other control still passes and the audit trail would faithfully notarise a recommendation built on invented data.
 
 ---
@@ -133,11 +151,11 @@ Every line of that report is reconstructable from the audit trail six months lat
 `finagent replay` on the trail file and you get it back, including the summary, each holding's
 rationale, the disclosures, and every finding's reasoning.
 
-That is a deliberate and recent correction. The chain always made the record tamper-evident, but
-the record itself held only weights and statuses: it could prove nobody had edited it, and could
-not tell you what the client was actually told. A hash chain over an incomplete record proves,
-very rigorously, that an incomplete record has not been altered. What gets notarised at issuance
-is now its own reviewable policy in `retention.py`.
+That completeness is deliberate. A chain makes a record tamper-evident; it does not make the
+record sufficient. A trail holding only weights and statuses can prove nobody edited it and still
+not say what the client was actually told — a hash chain over an incomplete record proves, very
+rigorously, that an incomplete record has not been altered. What gets notarised at issuance is
+therefore its own reviewable policy, in `retention.py`.
 
 ---
 
@@ -213,11 +231,18 @@ running the screens anyway.
 
 This is a reference implementation, not a licensed advisory product. It is not investment advice, it does not constitute a Shari'ah opinion, and the screening thresholds must be confirmed by your own Shari'ah board — methodologies differ materially between AAOIFI, Dow Jones Islamic Market, and S&P Shariah, and choosing between them is a governance decision, not a technical one.
 
+The bundled market data is **entirely fabricated**. Figures are derived deterministically from a
+hash of each symbol; real tickers appear only for readability, and the ratios and prices shown are
+not those companies' actual numbers and must not be presented as though they were. Replace the
+provider with your golden source before any live use.
+
 Licensed under the [MIT License](LICENSE).
 
-Author
-Built by Asadullah Shafique.
+---
 
-🔗 Explore my portfolio showcasing Agentic AI projects and real-world applications: asadullahshafique-devunity.vercel.app
+## Author
 
+Built by **Asadullah Shafique**.
 
+🔗 Explore my portfolio showcasing Agentic AI projects and real-world applications:
+**[asadullahshafique-devunity.vercel.app](https://asadullahshafique-devunity.vercel.app)**
