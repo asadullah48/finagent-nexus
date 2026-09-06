@@ -214,3 +214,10 @@ running the screens anyway.
 This is a reference implementation, not a licensed advisory product. It is not investment advice, it does not constitute a Shari'ah opinion, and the screening thresholds must be confirmed by your own Shari'ah board — methodologies differ materially between AAOIFI, Dow Jones Islamic Market, and S&P Shariah, and choosing between them is a governance decision, not a technical one.
 
 Licensed under the [MIT License](LICENSE).
+
+Author
+Built by Asadullah Shafique.
+
+🔗 Explore my portfolio showcasing Agentic AI projects and real-world applications: asadullahshafique-devunity.vercel.app
+
+
