@@ -2,6 +2,10 @@
 
 **Agentic AI adoption for financial services.** Closing the gap between AI potential and financial reality.
 
+[![CI](https://github.com/asadullah48/finagent-nexus/actions/workflows/ci.yml/badge.svg)](https://github.com/asadullah48/finagent-nexus/actions/workflows/ci.yml)
+[![Python 3.11+](https://img.shields.io/badge/python-3.11%20|%203.12%20|%203.13-blue)](pyproject.toml)
+[![License: MIT](https://img.shields.io/badge/license-MIT-green)](LICENSE)
+
 [العربية](README.ar.md) · [Technical specification](SPEC.md) · [Architecture](docs/architecture.md) · [Governance](docs/governance.md)
 
 ---
@@ -73,6 +77,21 @@ finagent run --mandate examples/mandates/balanced_sharia.json \
   --allow-synthetic-data   # demo only: prices are fabricated, see the note below
 ```
 
+**Only `finagent run` needs a model.** The other three commands are the deterministic half, and
+they run on `pip install -r requirements.txt` alone — no API key, no network, and with neither
+`anthropic` nor `langgraph` installed:
+
+```bash
+finagent verify-audit audit/<id>.jsonl   # recompute the hash chain
+finagent replay       audit/<id>.jsonl   # reconstruct the decision from the trail
+finagent eval --dataset tests/eval/datasets/golden_cases.json --allow-synthetic-data
+```
+
+`replay` refuses a trail whose chain does not verify. A tidy report rendered from an altered record
+would launder exactly the tampering the chain exists to expose. `eval` exits non-zero when a screen
+stops catching what it claims to, so scheduled re-validation is a build step rather than a document
+somebody has to read.
+
 Three worked demonstrations:
 
 ```bash
@@ -82,6 +101,24 @@ python examples/wealth_strategy.py     # the full Plan-Act-Verify loop
 ```
 
 `compliance_check.py` runs with **no API key at all** — the deterministic screens are pure functions. That is the point.
+
+### The screening endpoint
+
+`api/screen.py` deploys the deterministic half on its own — no model call, so no credential in the
+deployment to leak and no per-request token cost to meter. It answers in milliseconds, and returns
+the same verdict for the same input forever:
+
+```bash
+curl -X POST https://<your-deployment>/api/screen \
+  -H 'content-type: application/json' \
+  -d '{"mandate": "sharia",
+       "allocations": [{"symbol": "2222.SR",   "weight_pct": 31},
+                       {"symbol": "SUKUK.GCC", "weight_pct": 69}]}'
+```
+
+Every response carries `"model_calls": 0` and `"data_source": "synthetic"`. The qualitative
+principles — suitability, gharar, fair presentation — are deliberately not served here: they need a
+model, and a model needs a key.
 
 > **On `--allow-synthetic-data`.** The bundled market data provider fabricates deterministic prices from a hash of the symbol. It exists so the repository is runnable and the eval harness is reproducible — it is **not** a market simulator. Synthetic data is therefore opt-in and never inherited from a default: a runner constructed without a real `MarketDataProvider` raises rather than quietly falling back. Forgetting to inject a provider would otherwise be indistinguishable from a working deployment, since every other control still passes and the audit trail would faithfully notarise a recommendation built on invented data.
 
@@ -110,7 +147,15 @@ Audit
 Trail written to audit/9f2c….jsonl
 ```
 
-Every line of that report is reconstructable from the audit trail six months later.
+Every line of that report is reconstructable from the audit trail six months later — run
+`finagent replay` on the trail file and you get it back, including the summary, each holding's
+rationale, the disclosures, and every finding's reasoning.
+
+That completeness is deliberate. A chain makes a record tamper-evident; it does not make the
+record sufficient. A trail holding only weights and statuses can prove nobody edited it and still
+not say what the client was actually told — a hash chain over an incomplete record proves, very
+rigorously, that an incomplete record has not been altered. What gets notarised at issuance is
+therefore its own reviewable policy, in `retention.py`.
 
 ---
 
@@ -160,14 +205,25 @@ src/finagent_nexus/
   tools/             Market data provider (Protocol) + risk metrics + tool specs
   constitution.py    The written rules — the artefact your board signs off
   checks.py          Deterministic screens; pure functions, no model
+  verdict.py         Risk appetite: findings -> PASS / REVISE / BLOCK
+  provider_policy.py Whether a run may use fabricated prices
+  retention.py       What gets notarised at issuance
+  evaluation.py      Golden-case replay through the screens
   graph.py           Plan-Act-Verify state machine
   audit.py           Hash-chained, tamper-evident event trail
   llm.py             Typed Claude access: structured output, bounded tool loops
+  cli.py             run · verify-audit · replay · eval
+api/screen.py        The deployed screening endpoint — deterministic half only
 examples/            Three runnable demonstrations
 tests/               Unit tests + eval harness with golden cases
 docs/                Architecture, governance, diagrams
+.github/workflows/   CI: lint, types, tests, boundary, tamper, golden cases
 SPEC.md              Full technical specification
 ```
+
+The five modules above `graph.py` are the deterministic half. None of them imports a model client,
+and CI proves it by installing the project with `anthropic` and `langgraph` genuinely absent and
+running the screens anyway.
 
 ---
 
@@ -175,4 +231,18 @@ SPEC.md              Full technical specification
 
 This is a reference implementation, not a licensed advisory product. It is not investment advice, it does not constitute a Shari'ah opinion, and the screening thresholds must be confirmed by your own Shari'ah board — methodologies differ materially between AAOIFI, Dow Jones Islamic Market, and S&P Shariah, and choosing between them is a governance decision, not a technical one.
 
-Licensed under Apache-2.0.
+The bundled market data is **entirely fabricated**. Figures are derived deterministically from a
+hash of each symbol; real tickers appear only for readability, and the ratios and prices shown are
+not those companies' actual numbers and must not be presented as though they were. Replace the
+provider with your golden source before any live use.
+
+Licensed under the [MIT License](LICENSE).
+
+---
+
+## Author
+
+Built by **Asadullah Shafique**.
+
+🔗 Explore my portfolio showcasing Agentic AI projects and real-world applications:
+**[asadullahshafique-devunity.vercel.app](https://asadullahshafique-devunity.vercel.app)**
