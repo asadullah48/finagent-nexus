@@ -2,7 +2,6 @@
 
 **Agentic AI adoption for financial services.** Closing the gap between AI potential and financial reality.
 
-[![CI](https://github.com/asadullah48/finagent-nexus/actions/workflows/ci.yml/badge.svg)](https://github.com/asadullah48/finagent-nexus/actions/workflows/ci.yml)
 [![Python 3.11+](https://img.shields.io/badge/python-3.11%20|%203.12%20|%203.13-blue)](pyproject.toml)
 [![License: MIT](https://img.shields.io/badge/license-MIT-green)](LICENSE)
 
@@ -77,20 +76,18 @@ finagent run --mandate examples/mandates/balanced_sharia.json \
   --allow-synthetic-data   # demo only: prices are fabricated, see the note below
 ```
 
-**Only `finagent run` needs a model.** The other three commands are the deterministic half, and
-they run on `pip install -r requirements.txt` alone — no API key, no network, and with neither
-`anthropic` nor `langgraph` installed:
+**Only `finagent run` needs a model.** `finagent verify-audit` and the offline eval harness are the
+deterministic half, and they run on `pip install -r requirements.txt` alone — no API key, no
+network, and with neither `anthropic` nor `langgraph` installed:
 
 ```bash
 finagent verify-audit audit/<id>.jsonl   # recompute the hash chain
-finagent replay       audit/<id>.jsonl   # reconstruct the decision from the trail
-finagent eval --dataset tests/eval/datasets/golden_cases.json --allow-synthetic-data
+python tests/eval/harness.py             # golden-case regression suite over the screens
 ```
 
-`replay` refuses a trail whose chain does not verify. A tidy report rendered from an altered record
-would launder exactly the tampering the chain exists to expose. `eval` exits non-zero when a screen
-stops catching what it claims to, so scheduled re-validation is a build step rather than a document
-somebody has to read.
+The harness exits non-zero when a screen stops catching what it claims to, so scheduled
+re-validation is a build step rather than a document somebody has to read. (`finagent replay` and a
+CLI-wired `finagent eval` are not built yet — see Status and limits.)
 
 Three worked demonstrations:
 
@@ -147,15 +144,13 @@ Audit
 Trail written to audit/9f2c….jsonl
 ```
 
-Every line of that report is reconstructable from the audit trail six months later — run
-`finagent replay` on the trail file and you get it back, including the summary, each holding's
-rationale, the disclosures, and every finding's reasoning.
-
-That completeness is deliberate. A chain makes a record tamper-evident; it does not make the
-record sufficient. A trail holding only weights and statuses can prove nobody edited it and still
-not say what the client was actually told — a hash chain over an incomplete record proves, very
-rigorously, that an incomplete record has not been altered. What gets notarised at issuance is
-therefore its own reviewable policy, in `retention.py`.
+Every event in the trail records what actually happened at that step — the plan's thesis, which
+instruments the analyst touched, each principle's status, the final allocations — and
+`finagent verify-audit` recomputes the hash chain over it, so tampering with any event invalidates
+everything after it. Rendering the full narrative report back out of the trail (`finagent replay`)
+is not built yet: today the trail proves an event happened and was not altered, which is what
+`verify-audit` checks. A dedicated retention policy for what gets notarised at issuance — right now,
+everything the graph records — is future work too; see Status and limits.
 
 ---
 
@@ -206,20 +201,20 @@ src/finagent_nexus/
   constitution.py    The written rules — the artefact your board signs off
   checks.py          Deterministic screens; pure functions, no model
   verdict.py         Risk appetite: findings -> PASS / REVISE / BLOCK
-  provider_policy.py Whether a run may use fabricated prices
-  retention.py       What gets notarised at issuance
-  evaluation.py      Golden-case replay through the screens
+  state.py           Pydantic payload models + the LangGraph state shape
+  config.py          Settings, including the synthetic-data opt-in
   graph.py           Plan-Act-Verify state machine
   audit.py           Hash-chained, tamper-evident event trail
   llm.py             Typed Claude access: structured output, bounded tool loops
-  cli.py             run · verify-audit · replay · eval
+  cli.py             run · verify-audit
 api/screen.py        The deployed screening endpoint — deterministic half only
 examples/            Three runnable demonstrations
-tests/               Unit tests + eval harness with golden cases
+tests/               Unit tests; tests/eval/ holds the offline golden-case harness
 docs/                Architecture, governance, diagrams
-.github/workflows/   CI: lint, types, tests, boundary, tamper, golden cases
 SPEC.md              Full technical specification
 ```
+
+There is no CI wired up on `main` yet — see Status and limits.
 
 The five modules above `graph.py` are the deterministic half. None of them imports a model client,
 and CI proves it by installing the project with `anthropic` and `langgraph` genuinely absent and
@@ -235,6 +230,14 @@ The bundled market data is **entirely fabricated**. Figures are derived determin
 hash of each symbol; real tickers appear only for readability, and the ratios and prices shown are
 not those companies' actual numbers and must not be presented as though they were. Replace the
 provider with your golden source before any live use.
+
+**Not built yet.** `finagent replay` (reconstructing a full report from an audit trail) and a
+CLI-wired `finagent eval` do not exist — only `run` and `verify-audit` are implemented commands.
+The golden-case regression suite they were meant to wrap still runs directly
+(`python tests/eval/harness.py`). There is also no CI workflow wired up on `main`: an earlier
+branch built one (lint/types/tests, a determinism-boundary job, a tamper-detection job, and the
+golden-case gate) but it was never merged, and that branch's own run failed. Restoring it —
+correctly, and green on `main` — is the near-term roadmap item, not a claim about the present.
 
 Licensed under the [MIT License](LICENSE).
 
