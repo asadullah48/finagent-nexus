@@ -24,8 +24,15 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
-from finagent_nexus.agents import aggregate_verdict
 from finagent_nexus.checks import run_machine_checks
+
+# Import from the canonical `verdict` module, not the `agents` package: the
+# package's `__init__` re-exports `aggregate_verdict` via
+# `compliance_officer.py`, which imports `llm.py`, which imports `anthropic`.
+# That is the exact leak `test_deterministic_isolation.py` exists to catch —
+# this harness is the offline tier and must stay importable with neither
+# `anthropic` nor `langgraph` installed.
+from finagent_nexus.verdict import aggregate_verdict
 from finagent_nexus.state import (
     ClientRequest,
     FindingStatus,

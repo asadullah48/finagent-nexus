@@ -12,8 +12,12 @@ from __future__ import annotations
 
 import sys
 
-from finagent_nexus.agents import aggregate_verdict
 from finagent_nexus.checks import run_machine_checks
+
+# See tests/eval/harness.py for why this comes from `verdict`, not `agents`:
+# the package import drags in `compliance_officer.py` -> `llm.py` ->
+# `anthropic`, which would silently break this file's own "no API key" claim.
+from finagent_nexus.verdict import aggregate_verdict
 from finagent_nexus.constitution import (
     MAX_SINGLE_POSITION_PCT,
     SHARIA_THRESHOLDS,

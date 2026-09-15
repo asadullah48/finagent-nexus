@@ -19,9 +19,15 @@ import sys
 from pathlib import Path
 
 from finagent_nexus.audit import AuditTrail
-from finagent_nexus.config import Settings
-from finagent_nexus.graph import NexusRunner
 from finagent_nexus.state import ClientRequest, Mandate, NexusState, Verdict
+
+# NexusRunner (finagent_nexus.graph) pulls in langgraph and, transitively, the
+# agents' anthropic client. `verify-audit` is documented as needing neither: an
+# auditor with the trail file and Python should be able to check it without
+# installing the model stack. A module-level import here would defeat that the
+# moment anyone typed `finagent verify-audit`, since importing this file at all
+# is unavoidable to reach any subcommand. Import it lazily, only where `run`
+# actually needs it.
 
 
 def _load_request(args: argparse.Namespace) -> ClientRequest:
@@ -115,6 +121,11 @@ def _print_report(state: NexusState) -> int:
 
 
 def _cmd_run(args: argparse.Namespace) -> int:
+    # Deferred: see the note by the top-level imports. `run` is the one
+    # subcommand that needs the model stack, so it pays this import's cost.
+    from finagent_nexus.config import Settings
+    from finagent_nexus.graph import NexusRunner
+
     settings = Settings.from_env()
     # ``replace`` rather than rebuilding field by field: Settings is frozen, and
     # an explicit constructor call silently resets every field it forgets to
